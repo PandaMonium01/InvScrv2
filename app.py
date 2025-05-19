@@ -5,8 +5,8 @@ import plotly.express as px
 import os
 import io
 from utils.data_processor import load_and_process_csv, validate_csv
-from utils.formula_engine import apply_formula
-from utils.visualization import create_asset_class_chart, create_selection_comparison_chart
+from utils.formula_engine import apply_formula, calculate_performance_metrics
+from utils.visualization import create_asset_class_chart, create_selection_comparison_chart, create_risk_return_scatter
 
 st.set_page_config(
     page_title="Investment Selection Tool",
@@ -85,15 +85,25 @@ def main():
         Define a custom formula to filter investments.
         
         **Available variables**:
-        - `return`: Investment return
-        - `risk`: Risk score
-        - `expense_ratio`: Expense ratio
-        - And any other numeric columns in your data
+        - Full column names:
+          - `3 Years Annualised (%)`: 3-year annualized return
+          - `Investment Management Fee(%)`: Management fee
+          - `3 Year Standard Deviation`: Standard deviation (risk measure)
+          - `3 Year Beta`: Beta value
+          - `3 Year Sharpe Ratio`: Sharpe ratio
+        
+        - Short aliases for convenience:
+          - `return`: Maps to 3 Years Annualised (%)
+          - `expense_ratio`: Maps to Investment Management Fee(%)
+          - `risk`: Maps to 3 Year Standard Deviation
+          - `beta`: Maps to 3 Year Beta
+          - `sharpe`: Maps to 3 Year Sharpe Ratio
         
         **Examples**:
-        - `return > 0.05`: Investments with return > 5%
+        - `return > 5`: Investments with annualized return > 5%
         - `return / risk > 1`: Return-to-risk ratio > 1
-        - `expense_ratio < 0.01 and return > 0.07`: Low expense, high return
+        - `expense_ratio < 1 and return > 7`: Low fee, high return
+        - `sharpe > 0.5`: Sharpe ratio greater than 0.5
         """)
         
         formula = st.text_area(
@@ -123,7 +133,7 @@ def main():
         st.header("Imported Data")
         
         # Create tabs for raw data and aggregated data
-        tabs = st.tabs(["Combined Data", "Asset Class Averages"])
+        tabs = st.tabs(["Combined Data", "Category Averages", "Risk-Return Plot"])
         
         with tabs[0]:
             st.dataframe(st.session_state.combined_data, use_container_width=True)
@@ -138,20 +148,31 @@ def main():
             )
         
         with tabs[1]:
-            st.dataframe(st.session_state.asset_class_averages, use_container_width=True)
-            
-            # Create visualization for asset class averages
-            fig = create_asset_class_chart(st.session_state.asset_class_averages)
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # Export asset class averages
-            csv_averages = st.session_state.asset_class_averages.to_csv()
-            st.download_button(
-                label="Download Asset Class Averages",
-                data=csv_averages,
-                file_name="asset_class_averages.csv",
-                mime="text/csv",
-            )
+            if st.session_state.asset_class_averages is not None:
+                st.dataframe(st.session_state.asset_class_averages, use_container_width=True)
+                
+                # Create visualization for Morningstar Category averages
+                fig = create_asset_class_chart(st.session_state.asset_class_averages)
+                st.plotly_chart(fig, use_container_width=True)
+                
+                # Export category averages
+                csv_averages = st.session_state.asset_class_averages.to_csv()
+                st.download_button(
+                    label="Download Category Averages",
+                    data=csv_averages,
+                    file_name="category_averages.csv",
+                    mime="text/csv",
+                )
+            else:
+                st.info("No category averages data available")
+                
+        with tabs[2]:
+            # Create risk-return scatter plot
+            if st.session_state.combined_data is not None and not st.session_state.combined_data.empty:
+                risk_return_fig = create_risk_return_scatter(st.session_state.combined_data)
+                st.plotly_chart(risk_return_fig, use_container_width=True)
+            else:
+                st.info("No data available for risk-return analysis")
     
     # Display filtered selection if available
     if st.session_state.filtered_selection is not None:
