@@ -35,11 +35,9 @@ def apply_formula(df, formula_str):
                 # Handle blank/NaN values in the data
                 clean_series = df[col].copy()
                 
-                # Special handling for '3 Years Annualised (%)'
-                if col == '3 Years Annualised (%)':
-                    # For formulas, replace NaNs with a very low number that will fail most filters
-                    # This ensures rows with empty values don't pass through the formula unexpectedly
-                    clean_series = clean_series.fillna(-9999)
+                # For all numeric columns, replace NaNs with a very low number 
+                # This ensures rows with empty values don't pass through the formula unexpectedly
+                clean_series = clean_series.fillna(-9999)
                 
                 # Use the original column name
                 local_vars[col] = clean_series
