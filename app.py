@@ -4,9 +4,69 @@ import numpy as np
 import plotly.express as px
 import os
 import io
+import re
+import PyPDF2
 from utils.data_processor import load_and_process_csv, validate_csv
 from utils.formula_engine import apply_formula, calculate_performance_metrics
 from utils.visualization import create_asset_class_chart, create_selection_comparison_chart, create_risk_return_scatter
+
+def extract_apir_codes_from_pdf(pdf_file):
+    """
+    Extract APIR codes from a PDF file.
+    
+    Parameters:
+    pdf_file (file): PDF file to extract APIR codes from
+    
+    Returns:
+    list: List of APIR codes found in the PDF
+    """
+    try:
+        # Create a PDF reader object
+        pdf_reader = PyPDF2.PdfReader(pdf_file)
+        
+        # Define an APIR code pattern - typically letters followed by numbers, total of 5-9 characters
+        # Common formats: ABC123AU, ETL0001AU, etc.
+        apir_pattern = r'\b[A-Z]{3}[0-9A-Z]{2,6}\b'
+        
+        all_apir_codes = set()
+        
+        # Extract text from each page and find APIR codes
+        for page_num in range(len(pdf_reader.pages)):
+            page = pdf_reader.pages[page_num]
+            text = page.extract_text()
+            
+            # Find all matches of the APIR pattern
+            apir_codes = re.findall(apir_pattern, text)
+            all_apir_codes.update(apir_codes)
+        
+        return list(all_apir_codes)
+    
+    except Exception as e:
+        st.error(f"Error extracting APIR codes from PDF: {str(e)}")
+        return []
+
+def filter_investments_by_apir(df, apir_codes):
+    """
+    Filter investments by APIR codes.
+    
+    Parameters:
+    df (DataFrame): DataFrame containing investment data
+    apir_codes (list): List of APIR codes to filter by
+    
+    Returns:
+    DataFrame: Filtered DataFrame
+    """
+    if df is None or df.empty or not apir_codes:
+        return df
+    
+    # Check if 'APIR Code' column exists
+    if 'APIR Code' not in df.columns:
+        st.warning("No 'APIR Code' column found in the data")
+        return df
+    
+    # Filter the DataFrame to only include rows with APIR codes in the list
+    filtered_df = df[df['APIR Code'].isin(apir_codes)]
+    return filtered_df
 
 st.set_page_config(
     page_title="Investment Selection Tool",
@@ -31,6 +91,10 @@ def main():
         st.session_state.filtered_selection = None
     if 'formula' not in st.session_state:
         st.session_state.formula = ""
+    if 'hub24_filtered' not in st.session_state:
+        st.session_state.hub24_filtered = None
+    if 'hub24_apir_codes' not in st.session_state:
+        st.session_state.hub24_apir_codes = []
     
     with st.sidebar:
         st.header("Data Import")
@@ -142,6 +206,46 @@ def main():
                             st.warning("No investments match your formula criteria.")
                     except Exception as e:
                         st.error(f"Error applying formula: {str(e)}")
+        
+        # Add HUB24 platform filtering section
+        st.header("HUB24 Platform Filter")
+        st.markdown("""
+        Upload a PDF containing the list of investment options available on the HUB24 platform.
+        The application will extract APIR codes from the PDF and filter your investment list to only
+        show options that are available on the HUB24 platform.
+        """)
+        
+        # PDF uploader for HUB24 investment options
+        hub24_pdf = st.file_uploader(
+            "Upload HUB24 Investment Options PDF", 
+            type="pdf",
+            help="Upload a PDF containing the list of investment options available on the HUB24 platform."
+        )
+        
+        if hub24_pdf is not None:
+            if st.button("Extract APIR Codes", use_container_width=True):
+                with st.spinner("Extracting APIR codes from PDF..."):
+                    # Extract APIR codes from the PDF
+                    apir_codes = extract_apir_codes_from_pdf(hub24_pdf)
+                    st.session_state.hub24_apir_codes = apir_codes
+                    
+                    if apir_codes:
+                        st.success(f"Successfully extracted {len(apir_codes)} APIR codes from the PDF.")
+                    else:
+                        st.warning("No APIR codes found in the PDF. Make sure the PDF contains valid APIR codes.")
+        
+        # Filter by HUB24 APIR codes
+        if st.session_state.hub24_apir_codes and st.session_state.combined_data is not None:
+            if st.button("Filter by HUB24 Options", use_container_width=True):
+                with st.spinner("Filtering investments by HUB24 options..."):
+                    # Filter the investments by APIR codes
+                    hub24_filtered = filter_investments_by_apir(st.session_state.combined_data, st.session_state.hub24_apir_codes)
+                    st.session_state.hub24_filtered = hub24_filtered
+                    
+                    if hub24_filtered.empty:
+                        st.warning("No investments match the HUB24 platform options.")
+                    else:
+                        st.success(f"Found {len(hub24_filtered)} investments available on HUB24 platform.")
     
     # Display data and visualizations in the main area
     if st.session_state.dataframes:
@@ -246,6 +350,62 @@ def main():
                 file_name="filtered_investment_selection.csv",
                 mime="text/csv",
             )
+    
+    # Display HUB24 filtered investments if available
+    if st.session_state.hub24_filtered is not None:
+        st.header("HUB24 Platform Available Investments")
+        
+        # Check if filtered list is empty
+        if st.session_state.hub24_filtered.empty:
+            st.warning("No investments in your list are available on the HUB24 platform based on the uploaded PDF.")
+        else:
+            # Define the column order with specified columns first
+            if 'APIR Code' in st.session_state.hub24_filtered.columns:
+                ordered_columns = [
+                    'Name',
+                    'APIR Code',
+                    'Morningstar Category',
+                    '3 Years Annualised (%)',
+                    'Investment Management Fee(%)',
+                    'Equity StyleBox™',
+                    'Morningstar Rating',
+                    '3 Year Beta',
+                    '3 Year Standard Deviation',
+                    '3 Year Sharpe Ratio'
+                ]
+                
+                # Get the actual columns from the dataframe
+                existing_columns = list(st.session_state.hub24_filtered.columns)
+                
+                # Keep only columns that exist in the actual dataframe
+                ordered_columns = [col for col in ordered_columns if col in existing_columns]
+                
+                # Add any remaining columns that weren't specified in the order
+                remaining_columns = [col for col in existing_columns if col not in ordered_columns]
+                final_column_order = ordered_columns + remaining_columns
+                
+                # Reorder the dataframe columns
+                reordered_df = st.session_state.hub24_filtered[final_column_order].copy()
+                
+                # Display the reordered dataframe
+                st.dataframe(reordered_df, use_container_width=True)
+                
+                # Add visualization for HUB24 filtered investments
+                if len(reordered_df) > 0:
+                    st.subheader("HUB24 Options Performance")
+                    
+                    # Create risk-return scatter plot for HUB24 options
+                    risk_return_fig = create_risk_return_scatter(reordered_df)
+                    st.plotly_chart(risk_return_fig, use_container_width=True)
+                    
+                    # Export HUB24 filtered investments
+                    csv_hub24 = reordered_df.to_csv(index=False)
+                    st.download_button(
+                        label="Download HUB24 Available Investments",
+                        data=csv_hub24,
+                        file_name="hub24_available_investments.csv",
+                        mime="text/csv",
+                    )
     
     # Display sample data format information if no data is loaded
     if not st.session_state.dataframes:
