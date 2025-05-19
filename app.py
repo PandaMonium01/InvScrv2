@@ -151,16 +151,48 @@ def main():
         tabs = st.tabs(["Combined Data", "Category Averages", "Risk-Return Plot"])
         
         with tabs[0]:
-            st.dataframe(st.session_state.combined_data, use_container_width=True)
-            
-            # Export combined data
-            csv_combined = st.session_state.combined_data.to_csv(index=False)
-            st.download_button(
-                label="Download Combined Data",
-                data=csv_combined,
-                file_name="combined_investment_data.csv",
-                mime="text/csv",
-            )
+            # Ensure the dataframe displays the specified columns first
+            if st.session_state.combined_data is not None and not st.session_state.combined_data.empty:
+                # Define the column order with specified columns first
+                ordered_columns = [
+                    'Name',
+                    'APIR Code',
+                    'Morningstar Category',
+                    '3 Years Annualised (%)',
+                    'Investment Management Fee(%)',
+                    'Equity StyleBox™',
+                    'Morningstar Rating',
+                    '3 Year Beta',
+                    '3 Year Standard Deviation',
+                    '3 Year Sharpe Ratio'
+                ]
+                
+                # Get the actual columns from the dataframe 
+                existing_columns = list(st.session_state.combined_data.columns)
+                
+                # Keep only columns that exist in the actual dataframe
+                ordered_columns = [col for col in ordered_columns if col in existing_columns]
+                
+                # Add any remaining columns that weren't specified in the order
+                remaining_columns = [col for col in existing_columns if col not in ordered_columns]
+                final_column_order = ordered_columns + remaining_columns
+                
+                # Reorder the dataframe columns
+                reordered_df = st.session_state.combined_data[final_column_order].copy()
+                
+                # Display the reordered dataframe
+                st.dataframe(reordered_df, use_container_width=True)
+                
+                # Export combined data
+                csv_combined = reordered_df.to_csv(index=False)
+                st.download_button(
+                    label="Download Combined Data",
+                    data=csv_combined,
+                    file_name="combined_investment_data.csv",
+                    mime="text/csv",
+                )
+            else:
+                st.info("No data available to display")
         
         with tabs[1]:
             if st.session_state.asset_class_averages is not None:
