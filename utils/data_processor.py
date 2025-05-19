@@ -3,7 +3,13 @@ import numpy as np
 import io
 
 # Required columns in CSV files
-REQUIRED_COLUMNS = ['investment_name', 'asset_class', 'return', 'risk', 'expense_ratio']
+REQUIRED_COLUMNS = ['Name', 'APIR Code', 'Morningstar Category', '3 Years Annualised (%)', 
+                    'Investment Management Fee(%)', 'Equity StyleBox™', 'Morningstar Rating',
+                    '3 Year Beta', '3 Year Standard Deviation', '3 Year Sharpe Ratio']
+
+# Define numeric columns for validation and processing
+NUMERIC_COLUMNS = ['3 Years Annualised (%)', 'Investment Management Fee(%)', 
+                   '3 Year Beta', '3 Year Standard Deviation', '3 Year Sharpe Ratio']
 
 def validate_csv(file):
     """
@@ -26,8 +32,10 @@ def validate_csv(file):
             return False, f"Missing required columns: {', '.join(missing_columns)}"
         
         # Check data types (at least for basic validation)
-        for col in ['return', 'risk', 'expense_ratio']:
-            if not pd.api.types.is_numeric_dtype(df[col]):
+        for col in NUMERIC_COLUMNS:
+            try:
+                pd.to_numeric(df[col])
+            except:
                 return False, f"Column '{col}' must contain numeric values"
         
         return True, ""
@@ -58,25 +66,31 @@ def load_and_process_csv(file):
                 raise ValueError(f"Required column '{col}' not found in CSV")
         
         # Convert numeric columns to appropriate types
-        numeric_columns = ['return', 'risk', 'expense_ratio']
-        for col in numeric_columns:
+        for col in NUMERIC_COLUMNS:
             df[col] = pd.to_numeric(df[col], errors='coerce')
         
         # Check for missing values in important columns
-        important_cols = REQUIRED_COLUMNS
-        if df[important_cols].isnull().any().any():
-            missing_count = df[important_cols].isnull().sum().sum()
+        has_missing = False
+        for col in REQUIRED_COLUMNS:
+            if df[col].isna().any():
+                has_missing = True
+                break
+                
+        if has_missing:
+            missing_count = df[REQUIRED_COLUMNS].isna().sum().sum()
             print(f"Warning: {missing_count} missing values found in important columns")
         
         # Handle missing values - for numeric columns, fill with median
         for col in df.select_dtypes(include=['float64', 'int64']).columns:
-            if df[col].isnull().any():
-                df[col] = df[col].fillna(df[col].median())
+            missing_mask = df[col].isna()
+            if missing_mask.any():
+                df.loc[missing_mask, col] = df[col].median()
         
         # For categorical/string columns, fill with "Unknown"
         for col in df.select_dtypes(include=['object']).columns:
-            if df[col].isnull().any():
-                df[col] = df[col].fillna("Unknown")
+            missing_mask = df[col].isna()
+            if missing_mask.any():
+                df.loc[missing_mask, col] = "Unknown"
         
         return df
     
