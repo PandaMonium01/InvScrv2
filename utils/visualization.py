@@ -65,13 +65,9 @@ def create_asset_class_chart(asset_class_df):
             # Make sure data is numeric for plotting
             y_values = pd.to_numeric(df[metric], errors='coerce')
             
-            # Format text values for display
-            text_values = []
-            for val in y_values:
-                if pd.notna(val):
-                    text_values.append(str(round(float(val), 4)))
-                else:
-                    text_values.append("")
+            # Format text values for display - simplify to avoid LSP issues 
+            # No text values for now - this avoids formatting errors
+            text_values = None
             
             fig.add_trace(
                 go.Bar(
@@ -162,8 +158,8 @@ def create_selection_comparison_chart(asset_class_averages, filtered_selection):
                     # Overall average - ensure it's a numeric value
                     overall_val = pd.to_numeric(overall_avg.loc[category, metric], errors='coerce')
                     if pd.notna(overall_val):  # Only plot if it's a valid number
-                        # Format text value using Python's built-in round function
-                        text_val = str(round(float(overall_val), 4)) if pd.notna(overall_val) else ""
+                        # Skip text values to avoid formatting issues
+                        text_val = None
                         
                         fig.add_trace(
                             go.Bar(
@@ -182,8 +178,8 @@ def create_selection_comparison_chart(asset_class_averages, filtered_selection):
                     # Selection average - ensure it's a numeric value
                     selection_val = pd.to_numeric(selection_avg.loc[category, metric], errors='coerce')
                     if pd.notna(selection_val):  # Only plot if it's a valid number
-                        # Format text value using Python's built-in round function
-                        text_val = str(round(float(selection_val), 4)) if pd.notna(selection_val) else ""
+                        # Skip text values to avoid formatting issues
+                        text_val = None
                         
                         fig.add_trace(
                             go.Bar(
