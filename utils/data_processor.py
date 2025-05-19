@@ -35,7 +35,10 @@ def validate_csv(file):
         for col in NUMERIC_COLUMNS:
             try:
                 # Filter out empty values before validation for all numeric columns
-                non_empty_values = df[col][df[col].astype(str).str.strip() != '']
+                values = df[col].astype(str)
+                # Replace special minus symbol (−) with standard minus (-)
+                values = values.str.replace('−', '-')
+                non_empty_values = values[values.str.strip() != '']
                 if len(non_empty_values) > 0:
                     pd.to_numeric(non_empty_values)
             except:
@@ -73,6 +76,10 @@ def load_and_process_csv(file):
             # Process all numeric columns to allow blank fields
             # Convert to string first to handle any existing data type
             df[col] = df[col].astype(str)
+            
+            # Handle special minus symbol (−) by replacing it with standard minus (-)
+            df[col] = df[col].str.replace('−', '-')
+            
             # Replace empty or whitespace-only strings with NaN
             empty_mask = df[col].str.strip() == ''
             # Convert valid values to numeric, leave empty as NaN
