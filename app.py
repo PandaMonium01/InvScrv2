@@ -24,9 +24,14 @@ def extract_apir_codes_from_pdf(pdf_file):
         # Create a PDF reader object
         pdf_reader = PyPDF2.PdfReader(pdf_file)
         
-        # Define an APIR code pattern - typically letters followed by numbers, total of 5-9 characters
-        # Common formats: ABC123AU, ETL0001AU, etc.
-        apir_pattern = r'\b[A-Z]{3}[0-9A-Z]{2,6}\b'
+        # Define APIR code patterns - covering various formats found in HUB24 documentation
+        # Standard format: 3 letters + 4-9 alphanumeric characters, often ending with AU
+        standard_pattern = r'\b[A-Z]{3}[0-9A-Z]{2,9}(?:AU)?\b'
+        
+        # Some APIR codes might be separated by spaces or have special formatting
+        # For example: "ABC 123 AU", "ABC-123AU", etc.
+        # This pattern will capture these with spaces/hyphens removed during processing
+        special_pattern = r'\b[A-Z]{3}[\s\-]?[0-9A-Z]{2,6}[\s\-]?(?:AU)?\b'
         
         all_apir_codes = set()
         
@@ -35,11 +40,25 @@ def extract_apir_codes_from_pdf(pdf_file):
             page = pdf_reader.pages[page_num]
             text = page.extract_text()
             
-            # Find all matches of the APIR pattern
-            apir_codes = re.findall(apir_pattern, text)
-            all_apir_codes.update(apir_codes)
+            # Find all matches using both patterns
+            standard_codes = re.findall(standard_pattern, text)
+            special_codes = re.findall(special_pattern, text)
+            
+            # Process special format codes to remove spaces/hyphens
+            cleaned_special_codes = []
+            for code in special_codes:
+                cleaned_code = code.replace(" ", "").replace("-", "")
+                if cleaned_code not in standard_codes:  # Avoid duplicates
+                    cleaned_special_codes.append(cleaned_code)
+            
+            # Add all found codes to the set
+            all_apir_codes.update(standard_codes)
+            all_apir_codes.update(cleaned_special_codes)
         
-        return list(all_apir_codes)
+        # Filter out any obvious false positives (common in PDFs)
+        filtered_codes = [code for code in all_apir_codes if len(code) >= 5 and not code.isalpha()]
+        
+        return filtered_codes
     
     except Exception as e:
         st.error(f"Error extracting APIR codes from PDF: {str(e)}")
@@ -85,6 +104,8 @@ def main():
     # Initialize session state variables if they don't exist
     if 'dataframes' not in st.session_state:
         st.session_state.dataframes = []
+    if 'combined_data' not in st.session_state:
+        st.session_state.combined_data = None
     if 'asset_class_averages' not in st.session_state:
         st.session_state.asset_class_averages = None
     if 'filtered_selection' not in st.session_state:
@@ -235,7 +256,7 @@ def main():
                         st.warning("No APIR codes found in the PDF. Make sure the PDF contains valid APIR codes.")
         
         # Filter by HUB24 APIR codes
-        if st.session_state.hub24_apir_codes and st.session_state.combined_data is not None:
+        if len(st.session_state.hub24_apir_codes) > 0 and st.session_state.combined_data is not None and not st.session_state.combined_data.empty:
             if st.button("Filter by HUB24 Options", use_container_width=True):
                 with st.spinner("Filtering investments by HUB24 options..."):
                     # Filter the investments by APIR codes
