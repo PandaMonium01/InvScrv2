@@ -21,12 +21,22 @@ def create_asset_class_chart(asset_class_df):
         # Reset index to get Morningstar Category as a column
         df = asset_class_df.reset_index()
         
-        # Select relevant columns for visualization
-        metrics = ['3 Years Annualised (%)', '3 Year Standard Deviation', 'Investment Management Fee(%)']
+        # Select only available metrics from the ones we're interested in
+        all_metrics = [
+            '3 Years Annualised (%)', 
+            'Investment Management Fee(%)', 
+            '3 Year Beta',
+            '3 Year Standard Deviation', 
+            '3 Year Sharpe Ratio'
+        ]
+        metrics = [m for m in all_metrics if m in df.columns]
+        
         metric_titles = {
             '3 Years Annualised (%)': 'Annualised Return (%)', 
-            '3 Year Standard Deviation': 'Standard Deviation', 
-            'Investment Management Fee(%)': 'Management Fee (%)'
+            'Investment Management Fee(%)': 'Management Fee (%)',
+            '3 Year Beta': 'Beta',
+            '3 Year Standard Deviation': 'Standard Deviation',
+            '3 Year Sharpe Ratio': 'Sharpe Ratio'
         }
         
         # Create a subplot with multiple metrics
@@ -90,12 +100,23 @@ def create_selection_comparison_chart(asset_class_averages, filtered_selection):
         overall_avg = asset_class_averages.loc[list(common_categories)]
         selection_avg = selection_averages.loc[list(common_categories)]
         
-        # Select metrics for comparison
-        metrics = ['3 Years Annualised (%)', '3 Year Standard Deviation', 'Investment Management Fee(%)']
+        # Select only available metrics from the ones we're interested in
+        all_metrics = [
+            '3 Years Annualised (%)', 
+            'Investment Management Fee(%)', 
+            '3 Year Beta',
+            '3 Year Standard Deviation', 
+            '3 Year Sharpe Ratio'
+        ]
+        # Find intersection of metrics available in both dataframes
+        metrics = [m for m in all_metrics if m in overall_avg.columns and m in selection_avg.columns]
+        
         metric_titles = {
             '3 Years Annualised (%)': 'Return (%)', 
-            '3 Year Standard Deviation': 'Std Dev', 
-            'Investment Management Fee(%)': 'Fee (%)'
+            'Investment Management Fee(%)': 'Fee (%)',
+            '3 Year Beta': 'Beta',
+            '3 Year Standard Deviation': 'Std Dev',
+            '3 Year Sharpe Ratio': 'Sharpe'
         }
         
         # Create subplots

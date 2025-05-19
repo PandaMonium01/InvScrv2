@@ -73,10 +73,25 @@ def main():
                     try:
                         # Combine all dataframes
                         combined_data = pd.concat(st.session_state.dataframes, ignore_index=True)
-                        
-                        # Calculate averages by Morningstar Category
-                        st.session_state.asset_class_averages = combined_data.groupby('Morningstar Category').mean()
                         st.session_state.combined_data = combined_data
+                        
+                        # Calculate averages only for specific fields by Morningstar Category
+                        avg_fields = [
+                            '3 Years Annualised (%)',
+                            'Investment Management Fee(%)',
+                            '3 Year Beta',
+                            '3 Year Standard Deviation',
+                            '3 Year Sharpe Ratio'
+                        ]
+                        
+                        # Create a subset with only the needed columns for averaging
+                        # First check which of the required fields actually exist in the data
+                        existing_fields = [f for f in avg_fields if f in combined_data.columns]
+                        subset_for_avg = combined_data[['Morningstar Category'] + existing_fields].copy()
+                        
+                        # Calculate averages by Morningstar Category for specific fields only
+                        st.session_state.asset_class_averages = subset_for_avg.groupby('Morningstar Category').mean(numeric_only=True)
+                        
                     except Exception as e:
                         st.error(f"Error calculating asset class averages: {str(e)}")
         
