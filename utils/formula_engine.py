@@ -50,7 +50,10 @@ def apply_formula(df, formula_str):
     except NameError as e:
         # Handle case where a column name isn't recognized
         missing_var = str(e).split("'")[1]
-        available_vars = ", ".join(list(local_vars.keys()) if 'local_vars' in locals() else ["No variables available"])
+        try:
+            available_vars = ", ".join(list(local_vars.keys()))
+        except:
+            available_vars = "No variables available"
         raise ValueError(f"Column '{missing_var}' not found or not numeric. Available variables are: {available_vars}")
     
     except SyntaxError:
