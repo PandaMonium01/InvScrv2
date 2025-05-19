@@ -33,10 +33,17 @@ def validate_csv(file):
         
         # Check data types (at least for basic validation)
         for col in NUMERIC_COLUMNS:
-            try:
-                pd.to_numeric(df[col])
-            except:
-                return False, f"Column '{col}' must contain numeric values"
+            if col != '3 Years Annualised (%)':  # Allow blank fields in this column
+                try:
+                    # Filter out empty values before validation
+                    non_empty_values = df[col][df[col].astype(str).str.strip() != '']
+                    if len(non_empty_values) > 0:
+                        pd.to_numeric(non_empty_values)
+                except:
+                    return False, f"Column '{col}' must contain numeric values"
+            else:
+                # For '3 Years Annualised (%)', just make sure the column exists
+                pass
         
         return True, ""
     except pd.errors.EmptyDataError:
@@ -67,7 +74,17 @@ def load_and_process_csv(file):
         
         # Convert numeric columns to appropriate types
         for col in NUMERIC_COLUMNS:
-            df[col] = pd.to_numeric(df[col], errors='coerce')
+            # Special handling for '3 Years Annualised (%)' column to allow blanks
+            if col == '3 Years Annualised (%)':
+                # Convert to string first to handle any existing data type
+                df[col] = df[col].astype(str)
+                # Replace empty or whitespace-only strings with NaN
+                empty_mask = df[col].str.strip() == ''
+                # Convert valid values to numeric, leave empty as NaN
+                df.loc[~empty_mask, col] = pd.to_numeric(df.loc[~empty_mask, col], errors='coerce')
+            else:
+                # Normal handling for other numeric columns
+                df[col] = pd.to_numeric(df[col], errors='coerce')
         
         # Check for missing values in important columns
         has_missing = df[REQUIRED_COLUMNS].isna().sum().sum() > 0

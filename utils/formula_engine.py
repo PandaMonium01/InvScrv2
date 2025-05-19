@@ -29,15 +29,25 @@ def apply_formula(df, formula_str):
         }
         
         # Extract all column values that might be used in the formula
+        local_vars = {}
         for col in df.columns:
             if pd.api.types.is_numeric_dtype(df[col]):
+                # Handle blank/NaN values in the data
+                clean_series = df[col].copy()
+                
+                # Special handling for '3 Years Annualised (%)'
+                if col == '3 Years Annualised (%)':
+                    # For formulas, replace NaNs with a very low number that will fail most filters
+                    # This ensures rows with empty values don't pass through the formula unexpectedly
+                    clean_series = clean_series.fillna(-9999)
+                
                 # Use the original column name
-                local_vars[col] = df[col]
+                local_vars[col] = clean_series
                 
                 # Also add any shorthand version for convenience
                 for short_name, full_name in rename_map.items():
                     if col == full_name:
-                        local_vars[short_name] = df[col]
+                        local_vars[short_name] = clean_series
         
         # Apply the formula to create a mask
         mask = eval(formula_str, {"__builtins__": {}}, local_vars)
