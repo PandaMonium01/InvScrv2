@@ -19,10 +19,25 @@ def apply_formula(df, formula_str):
         # Create a safe local environment for formula evaluation
         local_vars = {}
         
+        # Create variable mappings to make formula writing easier
+        rename_map = {
+            'return': '3 Years Annualised (%)',
+            'expense_ratio': 'Investment Management Fee(%)',
+            'risk': '3 Year Standard Deviation',
+            'beta': '3 Year Beta',
+            'sharpe': '3 Year Sharpe Ratio'
+        }
+        
         # Extract all column values that might be used in the formula
         for col in df.columns:
             if pd.api.types.is_numeric_dtype(df[col]):
+                # Use the original column name
                 local_vars[col] = df[col]
+                
+                # Also add any shorthand version for convenience
+                for short_name, full_name in rename_map.items():
+                    if col == full_name:
+                        local_vars[short_name] = df[col]
         
         # Apply the formula to create a mask
         mask = eval(formula_str, {"__builtins__": {}}, local_vars)
@@ -35,7 +50,8 @@ def apply_formula(df, formula_str):
     except NameError as e:
         # Handle case where a column name isn't recognized
         missing_var = str(e).split("'")[1]
-        raise ValueError(f"Column '{missing_var}' not found or not numeric")
+        available_vars = ", ".join(list(local_vars.keys()) if 'local_vars' in locals() else ["No variables available"])
+        raise ValueError(f"Column '{missing_var}' not found or not numeric. Available variables are: {available_vars}")
     
     except SyntaxError:
         raise ValueError("Invalid formula syntax")
@@ -60,12 +76,12 @@ def calculate_performance_metrics(df):
         result = df.copy()
         
         # Calculate return-to-risk ratio (return divided by risk)
-        if 'return' in result.columns and 'risk' in result.columns:
-            result['return_risk_ratio'] = result['return'] / result['risk']
+        if '3 Years Annualised (%)' in result.columns and '3 Year Standard Deviation' in result.columns:
+            result['Return/Risk Ratio'] = result['3 Years Annualised (%)'] / result['3 Year Standard Deviation']
         
         # Calculate return-to-expense ratio (return divided by expense ratio)
-        if 'return' in result.columns and 'expense_ratio' in result.columns:
-            result['return_expense_ratio'] = result['return'] / result['expense_ratio']
+        if '3 Years Annualised (%)' in result.columns and 'Investment Management Fee(%)' in result.columns:
+            result['Return/Fee Ratio'] = result['3 Years Annualised (%)'] / result['Investment Management Fee(%)']
         
         return result
     

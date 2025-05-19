@@ -6,7 +6,7 @@ from plotly.subplots import make_subplots
 
 def create_asset_class_chart(asset_class_df):
     """
-    Create a visualization for asset class averages.
+    Create a visualization for asset class averages (by Morningstar Category).
     
     Parameters:
     asset_class_df (DataFrame): DataFrame with asset class averages
@@ -18,12 +18,16 @@ def create_asset_class_chart(asset_class_df):
         return None
     
     try:
-        # Reset index to get asset_class as a column
+        # Reset index to get Morningstar Category as a column
         df = asset_class_df.reset_index()
         
         # Select relevant columns for visualization
-        metrics = ['return', 'risk', 'expense_ratio']
-        metric_titles = {'return': 'Return', 'risk': 'Risk', 'expense_ratio': 'Expense Ratio'}
+        metrics = ['3 Years Annualised (%)', '3 Year Standard Deviation', 'Investment Management Fee(%)']
+        metric_titles = {
+            '3 Years Annualised (%)': 'Annualised Return (%)', 
+            '3 Year Standard Deviation': 'Standard Deviation', 
+            'Investment Management Fee(%)': 'Management Fee (%)'
+        }
         
         # Create a subplot with multiple metrics
         fig = make_subplots(rows=1, cols=len(metrics), 
@@ -34,7 +38,7 @@ def create_asset_class_chart(asset_class_df):
         for i, metric in enumerate(metrics):
             fig.add_trace(
                 go.Bar(
-                    x=df['asset_class'],
+                    x=df['Morningstar Category'],
                     y=df[metric],
                     name=metric_titles[metric],
                     text=df[metric].round(4),
@@ -45,7 +49,7 @@ def create_asset_class_chart(asset_class_df):
         
         # Update layout
         fig.update_layout(
-            title="Asset Class Performance Metrics",
+            title="Morningstar Category Performance Metrics",
             height=400,
             showlegend=False,
             margin=dict(l=50, r=50, t=80, b=50)
@@ -62,7 +66,7 @@ def create_selection_comparison_chart(asset_class_averages, filtered_selection):
     Create a comparison chart between overall averages and filtered selection.
     
     Parameters:
-    asset_class_averages (DataFrame): Asset class averages DataFrame
+    asset_class_averages (DataFrame): Morningstar Category averages DataFrame
     filtered_selection (DataFrame): Filtered selection DataFrame
     
     Returns:
@@ -72,42 +76,47 @@ def create_selection_comparison_chart(asset_class_averages, filtered_selection):
         return None
     
     try:
-        # Calculate averages for the filtered selection by asset class
-        selection_averages = filtered_selection.groupby('asset_class').mean()
+        # Calculate averages for the filtered selection by Morningstar Category
+        selection_averages = filtered_selection.groupby('Morningstar Category').mean()
         
-        # Find common asset classes between the two DataFrames
-        common_asset_classes = set(asset_class_averages.index).intersection(set(selection_averages.index))
+        # Find common Morningstar Categories between the two DataFrames
+        common_categories = set(asset_class_averages.index).intersection(set(selection_averages.index))
         
-        if not common_asset_classes:
-            # If no common asset classes, create a different visualization
+        if not common_categories:
+            # If no common categories, create a different visualization
             return create_selection_summary_chart(filtered_selection)
         
-        # Filter to only include common asset classes
-        overall_avg = asset_class_averages.loc[list(common_asset_classes)]
-        selection_avg = selection_averages.loc[list(common_asset_classes)]
+        # Filter to only include common categories
+        overall_avg = asset_class_averages.loc[list(common_categories)]
+        selection_avg = selection_averages.loc[list(common_categories)]
         
         # Select metrics for comparison
-        metrics = ['return', 'risk', 'expense_ratio']
+        metrics = ['3 Years Annualised (%)', '3 Year Standard Deviation', 'Investment Management Fee(%)']
+        metric_titles = {
+            '3 Years Annualised (%)': 'Return (%)', 
+            '3 Year Standard Deviation': 'Std Dev', 
+            'Investment Management Fee(%)': 'Fee (%)'
+        }
         
         # Create subplots
         fig = make_subplots(
-            rows=len(common_asset_classes), 
+            rows=len(common_categories), 
             cols=1,
-            subplot_titles=[f"{asset_class} Comparison" for asset_class in common_asset_classes],
+            subplot_titles=[f"{category} Comparison" for category in common_categories],
             vertical_spacing=0.1
         )
         
-        # Add traces for each asset class
-        for i, asset_class in enumerate(common_asset_classes):
+        # Add traces for each Morningstar Category
+        for i, category in enumerate(common_categories):
             for j, metric in enumerate(metrics):
                 # Overall average
                 fig.add_trace(
                     go.Bar(
-                        x=[metric], 
-                        y=[overall_avg.loc[asset_class, metric]],
+                        x=[metric_titles[metric]], 
+                        y=[overall_avg.loc[category, metric]],
                         name=f"Overall Avg",
                         marker_color='lightblue',
-                        text=round(overall_avg.loc[asset_class, metric], 4),
+                        text=round(overall_avg.loc[category, metric], 4),
                         textposition='auto',
                         legendgroup="Overall",
                         showlegend=True if i == 0 and j == 0 else False,
@@ -118,11 +127,11 @@ def create_selection_comparison_chart(asset_class_averages, filtered_selection):
                 # Selection average
                 fig.add_trace(
                     go.Bar(
-                        x=[metric], 
-                        y=[selection_avg.loc[asset_class, metric]],
+                        x=[metric_titles[metric]], 
+                        y=[selection_avg.loc[category, metric]],
                         name=f"Selection",
                         marker_color='coral',
-                        text=round(selection_avg.loc[asset_class, metric], 4),
+                        text=round(selection_avg.loc[category, metric], 4),
                         textposition='auto',
                         legendgroup="Selection",
                         showlegend=True if i == 0 and j == 0 else False,
@@ -133,7 +142,7 @@ def create_selection_comparison_chart(asset_class_averages, filtered_selection):
         # Update layout
         fig.update_layout(
             title="Comparison: Overall vs. Selected Investments",
-            height=300 * len(common_asset_classes),
+            height=300 * len(common_categories),
             barmode='group',
             bargap=0.15,
             bargroupgap=0.1,
@@ -160,15 +169,15 @@ def create_selection_summary_chart(filtered_selection):
         return None
     
     try:
-        # Group by asset class and count
-        asset_class_counts = filtered_selection['asset_class'].value_counts().reset_index()
-        asset_class_counts.columns = ['asset_class', 'count']
+        # Group by Morningstar Category and count
+        category_counts = filtered_selection['Morningstar Category'].value_counts().reset_index()
+        category_counts.columns = ['Morningstar Category', 'count']
         
         # Create a pie chart of asset allocation
         fig = px.pie(
-            asset_class_counts,
+            category_counts,
             values='count',
-            names='asset_class',
+            names='Morningstar Category',
             title='Asset Allocation in Selected Investments'
         )
         
@@ -200,23 +209,23 @@ def create_risk_return_scatter(df):
     try:
         fig = px.scatter(
             df,
-            x='risk',
-            y='return',
-            color='asset_class',
-            size='expense_ratio',
-            hover_name='investment_name',
+            x='3 Year Standard Deviation',
+            y='3 Years Annualised (%)',
+            color='Morningstar Category',
+            size='Investment Management Fee(%)',
+            hover_name='Name',
             size_max=15,
             opacity=0.7,
             title='Risk-Return Analysis'
         )
         
         # Add a line representing the efficient frontier (simplified)
-        min_risk = df['risk'].min()
-        max_risk = df['risk'].max()
+        min_risk = df['3 Year Standard Deviation'].min()
+        max_risk = df['3 Year Standard Deviation'].max()
         risk_range = np.linspace(min_risk, max_risk, 100)
         # Simple model: return = a * sqrt(risk) + b
-        a = (df['return'].max() - df['return'].min()) / (np.sqrt(max_risk) - np.sqrt(min_risk))
-        b = df['return'].min() - a * np.sqrt(min_risk)
+        a = (df['3 Years Annualised (%)'].max() - df['3 Years Annualised (%)'].min()) / (np.sqrt(max_risk) - np.sqrt(min_risk))
+        b = df['3 Years Annualised (%)'].min() - a * np.sqrt(min_risk)
         efficient_return = a * np.sqrt(risk_range) + b
         
         fig.add_trace(
@@ -232,8 +241,8 @@ def create_risk_return_scatter(df):
         # Update layout
         fig.update_layout(
             height=600,
-            xaxis_title='Risk',
-            yaxis_title='Return',
+            xaxis_title='Standard Deviation (Risk)',
+            yaxis_title='Annualized Return (%)',
             margin=dict(l=50, r=50, t=80, b=50)
         )
         

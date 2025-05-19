@@ -70,27 +70,23 @@ def load_and_process_csv(file):
             df[col] = pd.to_numeric(df[col], errors='coerce')
         
         # Check for missing values in important columns
-        has_missing = False
-        for col in REQUIRED_COLUMNS:
-            if df[col].isna().any():
-                has_missing = True
-                break
+        has_missing = df[REQUIRED_COLUMNS].isna().sum().sum() > 0
                 
         if has_missing:
             missing_count = df[REQUIRED_COLUMNS].isna().sum().sum()
             print(f"Warning: {missing_count} missing values found in important columns")
         
         # Handle missing values - for numeric columns, fill with median
-        for col in df.select_dtypes(include=['float64', 'int64']).columns:
-            missing_mask = df[col].isna()
-            if missing_mask.any():
-                df.loc[missing_mask, col] = df[col].median()
+        numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns
+        for col in numeric_cols:
+            if df[col].isna().sum() > 0:
+                df[col] = df[col].fillna(df[col].median())
         
         # For categorical/string columns, fill with "Unknown"
-        for col in df.select_dtypes(include=['object']).columns:
-            missing_mask = df[col].isna()
-            if missing_mask.any():
-                df.loc[missing_mask, col] = "Unknown"
+        object_cols = df.select_dtypes(include=['object']).columns
+        for col in object_cols:
+            if df[col].isna().sum() > 0:
+                df[col] = df[col].fillna("Unknown")
         
         return df
     
@@ -122,7 +118,7 @@ def combine_dataframes(dataframes):
 
 def calculate_asset_class_averages(df):
     """
-    Calculate average metrics for each asset class.
+    Calculate average metrics for each asset class (Morningstar Category).
     
     Parameters:
     df (DataFrame): DataFrame containing investment data
@@ -134,8 +130,8 @@ def calculate_asset_class_averages(df):
         return None
     
     try:
-        # Group by asset class and calculate mean values
-        asset_class_averages = df.groupby('asset_class').mean()
+        # Group by Morningstar Category (asset class) and calculate mean values
+        asset_class_averages = df.groupby('Morningstar Category').mean()
         return asset_class_averages
     
     except Exception as e:
