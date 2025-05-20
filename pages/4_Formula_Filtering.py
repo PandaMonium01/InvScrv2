@@ -84,77 +84,47 @@ with col1:
                     st.error("Debug info: Data types - " + str(source_data['Morningstar Rating'].dtypes))
 
 with col2:
-    # Morningstar Category selector with improved checkbox list
-    if 'Morningstar Category' in st.session_state.combined_data.columns:
+    # Morningstar Category selector using dropdown with checkboxes
+    if 'Morningstar Category' in st.session_state['combined_data'].columns:
         st.write("**Morningstar Categories**")
         
-        available_categories = sorted(st.session_state.combined_data['Morningstar Category'].dropna().unique().tolist())
+        available_categories = sorted(st.session_state['combined_data']['Morningstar Category'].dropna().unique().tolist())
         
         # Initialize selected_categories if not already in session_state
         if 'selected_categories' not in st.session_state:
-            st.session_state.selected_categories = []
+            st.session_state['selected_categories'] = []
         
         # Add Select All / Deselect All buttons
         select_col1, select_col2 = st.columns(2)
         
         with select_col1:
             if st.button("Select All", use_container_width=True, key="select_all_btn"):
-                st.session_state.selected_categories = available_categories.copy()
+                st.session_state['selected_categories'] = available_categories.copy()
                 # Force page refresh
                 st.rerun()
                 
         with select_col2:
             if st.button("Deselect All", use_container_width=True, key="deselect_all_btn"):
-                st.session_state.selected_categories = []
+                st.session_state['selected_categories'] = []
                 # Force page refresh
                 st.rerun()
         
-        # Create a scrollable container for the categories
-        with st.container():
-            # Use CSS to style the checkbox list
-            st.markdown("""
-            <style>
-            .category-list {
-                max-height: 300px;
-                overflow-y: auto;
-                border: 1px solid #ddd;
-                padding: 10px;
-                margin-bottom: 10px;
-            }
-            </style>
-            """, unsafe_allow_html=True)
-            
-            # Start the styled container
-            st.markdown('<div class="category-list">', unsafe_allow_html=True)
-            
-            # Display all categories with checkboxes
-            for i, category in enumerate(available_categories):
-                # Check if this category is already selected
-                is_selected = category in st.session_state.selected_categories
-                
-                # Create an expander for each checkbox to make it more readable
-                checkbox_col1, checkbox_col2 = st.columns([0.1, 0.9])
-                
-                with checkbox_col1:
-                    # Checkbox for selection
-                    checked = st.checkbox("", value=is_selected, key=f"cat_{i}", 
-                                         help=f"Include {category} in filter")
-                
-                with checkbox_col2:
-                    # Display category name
-                    st.markdown(f"**{category}**")
-                
-                # Update the selected categories based on checkbox
-                if checked and category not in st.session_state.selected_categories:
-                    st.session_state.selected_categories.append(category)
-                elif not checked and category in st.session_state.selected_categories:
-                    st.session_state.selected_categories.remove(category)
-            
-            # End the styled container
-            st.markdown('</div>', unsafe_allow_html=True)
+        # Use multi-select dropdown with checkboxes
+        selected_categories = st.multiselect(
+            "Select Morningstar categories",
+            options=available_categories,
+            default=st.session_state['selected_categories'],
+            help="Select Morningstar categories to include in your filter"
+        )
         
-        # Show how many categories are selected
-        st.info(f"Selected: {len(st.session_state.selected_categories)} of {len(available_categories)} categories")
+        # Update session state with selected categories
+        st.session_state['selected_categories'] = selected_categories
+        
+        # Show count of selected categories
+        if selected_categories:
+            st.info(f"Selected: {len(selected_categories)} of {len(available_categories)} categories")
+        else:
+            st.warning("No categories selected")
         
         if st.button("Apply Category Filter", use_container_width=True):
             if not st.session_state.selected_categories:
