@@ -36,14 +36,38 @@ def validate_csv(file):
             try:
                 # Filter out empty values before validation for all numeric columns
                 values = df[col].astype(str)
+                
+                # Print problematic values for debugging (temp)
+                problematic_values = []
+                for idx, val in enumerate(values):
+                    # Skip blank/empty values
+                    if not val or val.strip() == '' or val.lower() in ['na', 'n/a', 'unknown', 'null', 'nan']:
+                        continue
+                    # Try to convert to float
+                    try:
+                        # Replace special Unicode minus with standard ASCII minus
+                        cleaned_val = val.replace('−', '-')
+                        float(cleaned_val)
+                    except ValueError:
+                        problematic_values.append(f"Row {idx+1}: '{val}'")
+                
+                # If there are problematic values, raise an error with details
+                if problematic_values:
+                    if len(problematic_values) > 3:
+                        problem_str = ", ".join(problematic_values[:3]) + f", and {len(problematic_values)-3} more"
+                    else:
+                        problem_str = ", ".join(problematic_values)
+                    return False, f"Column '{col}' contains non-numeric values: {problem_str}"
+                
+                # Continue with normal validation
                 # Replace special Unicode minus symbol (−) with standard ASCII minus (-)
                 # This is critical for negative numbers in CSV files that use the Unicode minus
                 values = values.str.replace('−', '-')
                 non_empty_values = values[values.str.strip() != '']
                 if len(non_empty_values) > 0:
                     pd.to_numeric(non_empty_values)
-            except:
-                return False, f"Column '{col}' must contain numeric values (when not blank)"
+            except Exception as e:
+                return False, f"Column '{col}' must contain numeric values (when not blank). Error: {str(e)}"
         
         return True, ""
     except pd.errors.EmptyDataError:
@@ -103,6 +127,32 @@ def load_and_process_csv(file):
             # First identify values that are essentially empty or non-numeric
             empty_mask = df[col].str.strip() == ''
             df.loc[empty_mask, col] = np.nan
+            
+            # Special handling for Investment Management Fee(%) column which often has problematic formats
+            if col == 'Investment Management Fee(%)':
+                # Clean up any potential problematic characters, especially for fee data 
+                # (which might have symbols like % or formatting issues)
+                df[col] = df[col].str.replace('%', '', regex=False)  # Remove percent symbols
+                df[col] = df[col].str.replace('$', '', regex=False)  # Remove dollar signs
+                df[col] = df[col].str.replace(',', '.', regex=False)  # Replace European commas with decimal points
+                
+                # Sometimes fees are presented as "X.XX / Y.YY" - take the first number
+                df[col] = df[col].apply(lambda x: x.split('/')[0].strip() if isinstance(x, str) and '/' in x else x)
+                
+                # Attempt to fix ranges like "0.5-0.8" by taking the average
+                def process_range(val):
+                    if isinstance(val, str) and '-' in val:
+                        parts = val.split('-')
+                        if len(parts) == 2:
+                            try:
+                                low = float(parts[0].strip())
+                                high = float(parts[1].strip())
+                                return (low + high) / 2
+                            except ValueError:
+                                return val
+                    return val
+                    
+                df[col] = df[col].apply(process_range)
             
             # Convert to numeric, coercing any remaining non-numeric values to NaN
             # This ensures that properly formatted negative numbers (with either minus symbol) are parsed correctly
