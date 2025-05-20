@@ -1,10 +1,4 @@
 import streamlit as st
-import pandas as pd
-import numpy as np
-import os
-import io
-import re
-import PyPDF2
 
 # Set page configuration
 st.set_page_config(
