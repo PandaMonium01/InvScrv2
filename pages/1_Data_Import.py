@@ -79,22 +79,74 @@ st.download_button(
     mime="text/csv",
 )
 
-# File uploader for multiple files
-uploaded_files = st.file_uploader(
-    "Upload CSV Files", 
-    type="csv", 
-    accept_multiple_files=True,
-    help="Upload one or more CSV files containing investment data."
+# Load sample data option
+st.markdown("### Data Import Options")
+import_option = st.radio(
+    "Choose an import option:",
+    ["Upload CSV Files", "Use Sample Data"],
+    help="You can either upload your own CSV files or use the provided sample data"
 )
 
+uploaded_files = None
+
+if import_option == "Upload CSV Files":
+    # File uploader for multiple files
+    uploaded_files = st.file_uploader(
+        "Upload CSV Files", 
+        type="csv", 
+        accept_multiple_files=True,
+        help="Upload one or more CSV files containing investment data."
+    )
+
+# Add sample data option
+if import_option == "Use Sample Data":
+    st.info("Using the sample investment data provided with the application.")
+    if st.button("Load Sample Data", use_container_width=True):
+        try:
+            # Load the sample data file
+            import os
+            sample_file_path = "sample_data/investment_data_sample.csv"
+            
+            if os.path.exists(sample_file_path):
+                df = pd.read_csv(sample_file_path)
+                # Store the sample data
+                st.session_state['dataframes'] = [df]
+                st.session_state['combined_data'] = df.copy()
+                
+                # Calculate averages for specific fields
+                avg_fields = [
+                    '3 Years Annualised (%)',
+                    'Investment Management Fee(%)',
+                    '3 Year Beta',
+                    '3 Year Standard Deviation',
+                    '3 Year Sharpe Ratio'
+                ]
+                
+                # Create subset for averages
+                existing_fields = [f for f in avg_fields if f in df.columns]
+                subset_for_avg = df[['Morningstar Category'] + existing_fields].copy()
+                
+                # Calculate averages
+                st.session_state['asset_class_averages'] = subset_for_avg.groupby('Morningstar Category').mean(numeric_only=True)
+                
+                # Set the timestamp
+                st.session_state['data_last_updated'] = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
+                
+                st.success(f"Successfully loaded sample data with {len(df)} investments.")
+                st.info("Navigate to the 'Data Analysis' page to view the data.")
+            else:
+                st.error(f"Sample data file not found at {sample_file_path}")
+        except Exception as e:
+            st.error(f"Error loading sample data: {str(e)}")
+
 # Check for previously uploaded data
-if st.session_state['combined_data'] is not None and not uploaded_files:
+if st.session_state['combined_data'] is not None and import_option == "Upload CSV Files" and not uploaded_files:
     st.success("Using previously uploaded data.")
-    if st.session_state['data_last_updated'] is not None:
+    if 'data_last_updated' in st.session_state and st.session_state['data_last_updated'] is not None:
         st.info(f"Data was last updated on: {st.session_state['data_last_updated']}")
 
 # Process new uploads or provide info about existing data
-if uploaded_files:
+if import_option == "Upload CSV Files" and uploaded_files:
     if st.button("Process Files", use_container_width=True):
         # Clear existing data only when processing new files
         st.session_state['dataframes'] = []
