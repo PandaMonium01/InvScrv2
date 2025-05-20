@@ -68,11 +68,27 @@ with tabs[0]:
         if 'portfolio_comments' not in st.session_state:
             st.session_state.portfolio_comments = {}
         
-        # Create a form for comments
-        comment_input = st.text_input(
-            "Comments for selected fund(s)", 
-            help="Enter any comments for the fund(s) you are adding to the portfolio"
-        )
+        # Create selection controls
+        col1, col2, col3 = st.columns([2, 1, 1])
+        
+        with col1:
+            # Create a form for comments
+            comment_input = st.text_input(
+                "Comments for selected fund(s)", 
+                help="Enter any comments for the fund(s) you are adding to the portfolio"
+            )
+        
+        with col2:
+            # Add button to unselect all options
+            if st.button("Unselect All", use_container_width=True):
+                # Clear the recommended portfolio
+                st.session_state.recommended_portfolio = {}
+                st.rerun()  # Rerun the app to refresh the table
+                
+        with col3:
+            # Show number of currently selected items
+            num_selected = len(st.session_state.recommended_portfolio)
+            st.markdown(f"**Selected: {num_selected}**")
         
         # Create a dataframe with a selection column
         # First, create a copy of the display data
