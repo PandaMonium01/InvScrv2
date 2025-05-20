@@ -83,9 +83,16 @@ uploaded_files = st.file_uploader(
     help="Upload one or more CSV files containing investment data."
 )
 
+# Check for previously uploaded data
+if st.session_state.combined_data is not None and not uploaded_files:
+    st.success("Using previously uploaded data.")
+    if 'data_last_updated' in st.session_state:
+        st.info(f"Data was last updated on: {st.session_state.data_last_updated}")
+
+# Process new uploads or provide info about existing data
 if uploaded_files:
     if st.button("Process Files", use_container_width=True):
-        # Clear existing data
+        # Clear existing data only when processing new files
         st.session_state.dataframes = []
         
         with st.spinner("Processing files..."):
@@ -115,6 +122,9 @@ if uploaded_files:
                 combined_data = pd.concat(st.session_state.dataframes, ignore_index=True)
                 st.session_state.combined_data = combined_data
                 
+                # Store the upload timestamp
+                st.session_state.data_last_updated = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
+                
                 # Calculate averages only for specific fields by Morningstar Category
                 avg_fields = [
                     '3 Years Annualised (%)',
@@ -137,6 +147,12 @@ if uploaded_files:
                 
             except Exception as e:
                 st.error(f"Error calculating asset class averages: {str(e)}")
+    
+    # Show message about existing data
+    elif st.session_state.combined_data is not None:
+        st.info("Previously uploaded data is already loaded. Upload new files and click 'Process Files' to replace the data.")
+        if 'data_last_updated' in st.session_state:
+            st.info(f"Data was last updated on: {st.session_state.data_last_updated}")
 
 # Show data summary if available
 if st.session_state.combined_data is not None and not st.session_state.combined_data.empty:
