@@ -84,9 +84,9 @@ with col1:
                     st.error("Debug info: Data types - " + str(source_data['Morningstar Rating'].dtypes))
 
 with col2:
-    # Morningstar Category selector with checkboxes
+    # Morningstar Category selector with improved checkbox list
     if 'Morningstar Category' in st.session_state.combined_data.columns:
-        st.write("**Select Morningstar Categories**")
+        st.write("**Morningstar Categories**")
         
         available_categories = sorted(st.session_state.combined_data['Morningstar Category'].dropna().unique().tolist())
         
@@ -94,66 +94,91 @@ with col2:
         if 'selected_categories' not in st.session_state:
             st.session_state.selected_categories = []
         
-        # Create a container with a max height for scrollable checkboxes
-        category_container = st.container()
+        # Add Select All / Deselect All buttons
+        select_col1, select_col2 = st.columns(2)
         
-        # Make it scrollable if there are many categories
-        with category_container:
-            # Use columns to display checkboxes in a more compact way
-            # Calculate how many categories we have and create 2 columns
-            col1, col2 = st.columns(2)
-            half_point = len(available_categories) // 2
-            
-            # First column of checkboxes
-            with col1:
-                for i, category in enumerate(available_categories[:half_point]):
-                    # Check if this category is already selected
-                    is_selected = category in st.session_state.selected_categories
-                    # Create checkbox with unique key
-                    if st.checkbox(category, value=is_selected, key=f"cat_{i}"):
-                        if category not in st.session_state.selected_categories:
-                            st.session_state.selected_categories.append(category)
-                    elif category in st.session_state.selected_categories:
-                        st.session_state.selected_categories.remove(category)
-            
-            # Second column of checkboxes
-            with col2:
-                for i, category in enumerate(available_categories[half_point:]):
-                    # Use a different offset for the keys in the second column
-                    i += half_point
-                    # Check if this category is already selected
-                    is_selected = category in st.session_state.selected_categories
-                    # Create checkbox with unique key
-                    if st.checkbox(category, value=is_selected, key=f"cat_{i}"):
-                        if category not in st.session_state.selected_categories:
-                            st.session_state.selected_categories.append(category)
-                    elif category in st.session_state.selected_categories:
-                        st.session_state.selected_categories.remove(category)
+        with select_col1:
+            if st.button("Select All", use_container_width=True, key="select_all_btn"):
+                st.session_state.selected_categories = available_categories.copy()
+                # Force page refresh
+                st.rerun()
+                
+        with select_col2:
+            if st.button("Deselect All", use_container_width=True, key="deselect_all_btn"):
+                st.session_state.selected_categories = []
+                # Force page refresh
+                st.rerun()
         
-        st.write(f"Selected: {len(st.session_state.selected_categories)} categories")
+        # Create a scrollable container for the categories
+        with st.container():
+            # Use CSS to style the checkbox list
+            st.markdown("""
+            <style>
+            .category-list {
+                max-height: 300px;
+                overflow-y: auto;
+                border: 1px solid #ddd;
+                padding: 10px;
+                margin-bottom: 10px;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+            
+            # Start the styled container
+            st.markdown('<div class="category-list">', unsafe_allow_html=True)
+            
+            # Display all categories with checkboxes
+            for i, category in enumerate(available_categories):
+                # Check if this category is already selected
+                is_selected = category in st.session_state.selected_categories
+                
+                # Create an expander for each checkbox to make it more readable
+                checkbox_col1, checkbox_col2 = st.columns([0.1, 0.9])
+                
+                with checkbox_col1:
+                    # Checkbox for selection
+                    checked = st.checkbox("", value=is_selected, key=f"cat_{i}", 
+                                         help=f"Include {category} in filter")
+                
+                with checkbox_col2:
+                    # Display category name
+                    st.markdown(f"**{category}**")
+                
+                # Update the selected categories based on checkbox
+                if checked and category not in st.session_state.selected_categories:
+                    st.session_state.selected_categories.append(category)
+                elif not checked and category in st.session_state.selected_categories:
+                    st.session_state.selected_categories.remove(category)
+            
+            # End the styled container
+            st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Show how many categories are selected
+        st.info(f"Selected: {len(st.session_state.selected_categories)} of {len(available_categories)} categories")
         
         if st.button("Apply Category Filter", use_container_width=True):
             if not st.session_state.selected_categories:
                 st.warning("Please select at least one Morningstar Category.")
             else:
-                # Construct category filter formula
-                category_formula = "`Morningstar Category` in " + str(st.session_state.selected_categories)
-                
                 # Use data that might already have been filtered by HUB24
                 source_data = st.session_state.combined_data if st.session_state.hub24_filtered is None else st.session_state.hub24_filtered
                 
                 with st.spinner("Applying category filter..."):
                     try:
-                        st.session_state.filtered_selection = apply_formula(
-                            source_data, 
-                            category_formula
-                        )
-                        if st.session_state.filtered_selection.empty:
+                        # Use pandas direct filtering instead of formula engine
+                        # This is more reliable for list-based filters
+                        filtered_df = source_data[source_data['Morningstar Category'].isin(st.session_state.selected_categories)]
+                        
+                        # Update the filtered selection
+                        st.session_state.filtered_selection = filtered_df
+                        
+                        if filtered_df.empty:
                             st.warning("No investments match the selected categories.")
                         else:
-                            st.success(f"Found {len(st.session_state.filtered_selection)} investments in the selected categories.")
+                            st.success(f"Found {len(filtered_df)} investments in the selected categories.")
                     except Exception as e:
                         st.error(f"Error applying category filter: {str(e)}")
+                        st.error(f"Debug info: Selected categories - {st.session_state.selected_categories}")
 
 # Divider
 st.markdown("---")
@@ -248,11 +273,15 @@ if st.session_state.filtered_selection is not None:
         st.subheader("Selection Performance")
         
         # Create comparison visualization
-        fig = create_selection_comparison_chart(
-            st.session_state.asset_class_averages,
-            st.session_state.filtered_selection
-        )
-        st.plotly_chart(fig, use_container_width=True)
+        try:
+            fig = create_selection_comparison_chart(
+                st.session_state.asset_class_averages,
+                st.session_state.filtered_selection
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        except Exception as e:
+            st.error(f"Error creating selection comparison chart: {str(e)}")
+            st.info("Chart couldn't be displayed, but your filtered data is still available below.")
         
         # Export filtered selection
         csv_filtered = st.session_state.filtered_selection.to_csv(index=False)
