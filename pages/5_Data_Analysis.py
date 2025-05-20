@@ -61,40 +61,8 @@ with tabs[0]:
     
     # Ensure the dataframe displays the specified columns first
     if display_data is not None and not display_data.empty:
-        # Add fund selection interface using expander
-        with st.expander("Select Funds for Recommended Portfolio", expanded=False):
-            st.markdown("""
-            Select funds from the current data view to add to your recommended portfolio. 
-            You can add comments for each selection to explain your rationale.
-            """)
-            
-            # Form for adding a fund to the portfolio
-            fund_selector = st.selectbox(
-                "Select a fund to add to your portfolio",
-                options=display_data['Name'].tolist(),
-                key="fund_selector_analysis"
-            )
-            
-            # Get the selected fund details
-            selected_fund = display_data[display_data['Name'] == fund_selector].iloc[0]
-            
-            selected_apir = selected_fund['APIR Code'] if 'APIR Code' in selected_fund else "Unknown"
-            selected_category = selected_fund['Morningstar Category'] if 'Morningstar Category' in selected_fund else "Unknown"
-            
-            # Comments for the selected fund
-            fund_comments = st.text_area(
-                "Comments (reason for selection, allocation percentage, etc.)",
-                key="fund_comments_analysis",
-                help="Add your rationale for selecting this fund or any other notes."
-            )
-            
-            if st.button("Add to Recommended Portfolio", key="add_button_analysis", use_container_width=True):
-                add_to_portfolio(fund_selector, selected_apir, selected_category, fund_comments)
-                
-            if st.session_state.recommended_portfolio:
-                num_selected = len(st.session_state.recommended_portfolio)
-                st.success(f"You have {num_selected} funds in your recommended portfolio.")
-                st.info("Go to the **Recommended Portfolio** page to view and manage your selections.")
+        st.markdown("### Select funds to add to your recommended portfolio")
+        st.write("Check the box in the first column to add a fund to your recommended portfolio.")
         
         # Define the column order with specified columns first
         ordered_columns = [
@@ -123,8 +91,53 @@ with tabs[0]:
         # Reorder the dataframe columns
         reordered_df = display_data[final_column_order].copy()
         
+        # Create a comments field
+        if 'portfolio_comments' not in st.session_state:
+            st.session_state.portfolio_comments = {}
+        
+        # Create a form for comments
+        comment_input = st.text_input(
+            "Comments for selected fund(s)", 
+            help="Enter any comments for the fund(s) you are adding to the portfolio"
+        )
+        
+        # Create a custom dataframe display with checkboxes
+        edited_df = pd.DataFrame()
+        
+        # Add checkboxes for each row
+        for i, row in reordered_df.iterrows():
+            fund_name = row['Name']
+            fund_apir = row['APIR Code']
+            fund_category = row['Morningstar Category'] if 'Morningstar Category' in row else "Unknown"
+            
+            # Check if the fund is already in the portfolio
+            is_in_portfolio = fund_apir in st.session_state.recommended_portfolio
+            
+            # Create a checkbox for each row
+            checkbox_key = f"fund_checkbox_{fund_apir}"
+            is_selected = st.checkbox(
+                label=fund_name,
+                value=is_in_portfolio,
+                key=checkbox_key
+            )
+            
+            # Handle selection/deselection
+            if is_selected and not is_in_portfolio:
+                # Add to portfolio
+                add_to_portfolio(fund_name, fund_apir, fund_category, comment_input)
+            elif not is_selected and is_in_portfolio:
+                # Remove from portfolio
+                del st.session_state.recommended_portfolio[fund_apir]
+                st.info(f"Removed {fund_name} from your recommended portfolio")
+        
         # Display the reordered dataframe
         st.dataframe(reordered_df, use_container_width=True)
+        
+        # Show portfolio status
+        if st.session_state.recommended_portfolio:
+            num_selected = len(st.session_state.recommended_portfolio)
+            st.success(f"You have {num_selected} funds in your recommended portfolio.")
+            st.info("Go to the **Recommended Portfolio** page to view and manage your selections.")
         
         # Export data
         csv_data = reordered_df.to_csv(index=False)
