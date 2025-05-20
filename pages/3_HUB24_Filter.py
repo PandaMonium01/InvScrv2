@@ -74,8 +74,8 @@ def filter_investments_by_apir(df, apir_codes):
     filtered_df = df[df['APIR Code'].isin(apir_codes)]
     return filtered_df
 
-# Check if data is available
-if st.session_state.combined_data is None or st.session_state.combined_data.empty:
+# Check if data is available using dictionary access for better persistence
+if st.session_state['combined_data'] is None or st.session_state['combined_data'].empty:
     st.warning("No data available for filtering. Please import data first on the 'Data Import' page.")
     st.stop()
 
@@ -96,17 +96,17 @@ hub24_pdf = st.file_uploader(
 )
 
 # If HUB24 codes are already in session state, show info about previous upload
-if len(st.session_state.hub24_apir_codes) > 0 and hub24_pdf is None:
-    st.success(f"Using previously uploaded HUB24 data with {len(st.session_state.hub24_apir_codes)} APIR codes.")
+if len(st.session_state['hub24_apir_codes']) > 0 and hub24_pdf is None:
+    st.success(f"Using previously uploaded HUB24 data with {len(st.session_state['hub24_apir_codes'])} APIR codes.")
     if 'hub24_pdf_name' in st.session_state and 'hub24_last_updated' in st.session_state:
-        st.info(f"HUB24 data was last updated on: {st.session_state.hub24_last_updated} from file: {st.session_state.hub24_pdf_name}")
+        st.info(f"HUB24 data was last updated on: {st.session_state['hub24_last_updated']} from file: {st.session_state['hub24_pdf_name']}")
     
     # Still show the Filter button for convenience
     if st.button("Filter by HUB24 Options", use_container_width=True):
         with st.spinner("Filtering investments by HUB24 options..."):
             # Filter the investments by APIR codes
-            hub24_filtered = filter_investments_by_apir(st.session_state.combined_data, st.session_state.hub24_apir_codes)
-            st.session_state.hub24_filtered = hub24_filtered
+            hub24_filtered = filter_investments_by_apir(st.session_state['combined_data'], st.session_state['hub24_apir_codes'])
+            st.session_state['hub24_filtered'] = hub24_filtered
             
             if hub24_filtered.empty:
                 st.warning("No investments match the HUB24 platform options.")
@@ -122,11 +122,11 @@ if hub24_pdf is not None:
             with st.spinner("Extracting APIR codes from PDF..."):
                 # Extract APIR codes from the PDF
                 apir_codes = extract_apir_codes_from_pdf(hub24_pdf)
-                st.session_state.hub24_apir_codes = apir_codes
+                st.session_state['hub24_apir_codes'] = apir_codes
                 
                 # Store PDF file name and timestamp
-                st.session_state.hub24_pdf_name = hub24_pdf.name
-                st.session_state.hub24_last_updated = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
+                st.session_state['hub24_pdf_name'] = hub24_pdf.name
+                st.session_state['hub24_last_updated'] = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
                 
                 if apir_codes:
                     st.success(f"Successfully extracted {len(apir_codes)} APIR codes from the PDF.")

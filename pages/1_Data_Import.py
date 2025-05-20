@@ -12,21 +12,25 @@ st.set_page_config(
     layout="wide",
 )
 
-# Initialize session state variables
+# Initialize session state variables with dictionary-style access for better persistence
 if 'dataframes' not in st.session_state:
-    st.session_state.dataframes = []
+    st.session_state['dataframes'] = []
 if 'combined_data' not in st.session_state:
-    st.session_state.combined_data = None
+    st.session_state['combined_data'] = None
 if 'asset_class_averages' not in st.session_state:
-    st.session_state.asset_class_averages = None
+    st.session_state['asset_class_averages'] = None
 if 'filtered_selection' not in st.session_state:
-    st.session_state.filtered_selection = None
+    st.session_state['filtered_selection'] = None
 if 'formula' not in st.session_state:
-    st.session_state.formula = ""
+    st.session_state['formula'] = ""
 if 'hub24_filtered' not in st.session_state:
-    st.session_state.hub24_filtered = None
+    st.session_state['hub24_filtered'] = None
 if 'hub24_apir_codes' not in st.session_state:
-    st.session_state.hub24_apir_codes = []
+    st.session_state['hub24_apir_codes'] = []
+if 'recommended_portfolio' not in st.session_state:
+    st.session_state['recommended_portfolio'] = {}
+if 'data_last_updated' not in st.session_state:
+    st.session_state['data_last_updated'] = None
 
 st.title("Data Import")
 
@@ -84,16 +88,16 @@ uploaded_files = st.file_uploader(
 )
 
 # Check for previously uploaded data
-if st.session_state.combined_data is not None and not uploaded_files:
+if st.session_state['combined_data'] is not None and not uploaded_files:
     st.success("Using previously uploaded data.")
-    if 'data_last_updated' in st.session_state:
-        st.info(f"Data was last updated on: {st.session_state.data_last_updated}")
+    if st.session_state['data_last_updated'] is not None:
+        st.info(f"Data was last updated on: {st.session_state['data_last_updated']}")
 
 # Process new uploads or provide info about existing data
 if uploaded_files:
     if st.button("Process Files", use_container_width=True):
         # Clear existing data only when processing new files
-        st.session_state.dataframes = []
+        st.session_state['dataframes'] = []
         
         with st.spinner("Processing files..."):
             for uploaded_file in uploaded_files:
@@ -108,7 +112,7 @@ if uploaded_files:
                         # Load and process the CSV
                         df = load_and_process_csv(uploaded_file)
                         if df is not None:
-                            st.session_state.dataframes.append(df)
+                            st.session_state['dataframes'].append(df)
                             st.success(f"Successfully processed: {uploaded_file.name}")
                     else:
                         st.error(f"Error in {uploaded_file.name}: {error_msg}")
@@ -116,14 +120,14 @@ if uploaded_files:
                     st.error(f"Error processing {uploaded_file.name}: {str(e)}")
         
         # Calculate asset class averages if files were successfully loaded
-        if st.session_state.dataframes:
+        if st.session_state['dataframes']:
             try:
                 # Combine all dataframes
-                combined_data = pd.concat(st.session_state.dataframes, ignore_index=True)
-                st.session_state.combined_data = combined_data
+                combined_data = pd.concat(st.session_state['dataframes'], ignore_index=True)
+                st.session_state['combined_data'] = combined_data
                 
                 # Store the upload timestamp
-                st.session_state.data_last_updated = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
+                st.session_state['data_last_updated'] = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
                 
                 # Calculate averages only for specific fields by Morningstar Category
                 avg_fields = [
@@ -140,32 +144,32 @@ if uploaded_files:
                 subset_for_avg = combined_data[['Morningstar Category'] + existing_fields].copy()
                 
                 # Calculate averages by Morningstar Category for specific fields only
-                st.session_state.asset_class_averages = subset_for_avg.groupby('Morningstar Category').mean(numeric_only=True)
+                st.session_state['asset_class_averages'] = subset_for_avg.groupby('Morningstar Category').mean(numeric_only=True)
                 
-                st.success(f"Successfully processed {len(st.session_state.dataframes)} files with {len(combined_data)} investments.")
+                st.success(f"Successfully processed {len(st.session_state['dataframes'])} files with {len(combined_data)} investments.")
                 st.info("Navigate to the 'Data Analysis' page to view the imported data.")
                 
             except Exception as e:
                 st.error(f"Error calculating asset class averages: {str(e)}")
     
     # Show message about existing data
-    elif st.session_state.combined_data is not None:
+    elif st.session_state['combined_data'] is not None:
         st.info("Previously uploaded data is already loaded. Upload new files and click 'Process Files' to replace the data.")
-        if 'data_last_updated' in st.session_state:
-            st.info(f"Data was last updated on: {st.session_state.data_last_updated}")
+        if st.session_state['data_last_updated'] is not None:
+            st.info(f"Data was last updated on: {st.session_state['data_last_updated']}")
 
 # Show data summary if available
-if st.session_state.combined_data is not None and not st.session_state.combined_data.empty:
+if st.session_state['combined_data'] is not None and not st.session_state['combined_data'].empty:
     st.header("Data Summary")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        num_investments = int(len(st.session_state.combined_data))
+        num_investments = int(len(st.session_state['combined_data']))
         st.metric("Number of Investments", num_investments)
         
     with col2:
-        num_categories = int(st.session_state.combined_data['Morningstar Category'].nunique())
+        num_categories = int(st.session_state['combined_data']['Morningstar Category'].nunique())
         st.metric("Number of Categories", num_categories)
     
     # Show sample of the data
@@ -186,7 +190,7 @@ if st.session_state.combined_data is not None and not st.session_state.combined_
     ]
     
     # Get the actual columns from the dataframe 
-    existing_columns = list(st.session_state.combined_data.columns)
+    existing_columns = list(st.session_state['combined_data'].columns)
     
     # Keep only columns that exist in the actual dataframe
     ordered_columns = [col for col in ordered_columns if col in existing_columns]
@@ -196,7 +200,7 @@ if st.session_state.combined_data is not None and not st.session_state.combined_
     final_column_order = ordered_columns + remaining_columns
     
     # Reorder the dataframe columns
-    reordered_df = st.session_state.combined_data[final_column_order].copy()
+    reordered_df = st.session_state['combined_data'][final_column_order].copy()
     
     # Display the first 5 rows
     st.dataframe(reordered_df.head(5), use_container_width=True)

@@ -9,20 +9,41 @@ st.set_page_config(
 )
 
 # Initialize session state variables if they don't exist
+# Use get() method to maintain data persistence
 if 'dataframes' not in st.session_state:
-    st.session_state.dataframes = []
+    st.session_state['dataframes'] = []
 if 'combined_data' not in st.session_state:
-    st.session_state.combined_data = None
+    st.session_state['combined_data'] = None
 if 'asset_class_averages' not in st.session_state:
-    st.session_state.asset_class_averages = None
+    st.session_state['asset_class_averages'] = None
 if 'filtered_selection' not in st.session_state:
-    st.session_state.filtered_selection = None
+    st.session_state['filtered_selection'] = None
 if 'formula' not in st.session_state:
-    st.session_state.formula = ""
+    st.session_state['formula'] = ""
 if 'hub24_filtered' not in st.session_state:
-    st.session_state.hub24_filtered = None
+    st.session_state['hub24_filtered'] = None
 if 'hub24_apir_codes' not in st.session_state:
-    st.session_state.hub24_apir_codes = []
+    st.session_state['hub24_apir_codes'] = []
+if 'recommended_portfolio' not in st.session_state:
+    st.session_state['recommended_portfolio'] = {}
+if 'data_last_updated' not in st.session_state:
+    st.session_state['data_last_updated'] = None
+if 'hub24_last_updated' not in st.session_state:
+    st.session_state['hub24_last_updated'] = None
+
+# Display data persistence status
+if st.session_state['combined_data'] is not None:
+    st.sidebar.success("✅ Data loaded")
+else:
+    st.sidebar.info("📊 No data loaded yet")
+    
+if len(st.session_state['hub24_apir_codes']) > 0:
+    st.sidebar.success(f"✅ HUB24 data loaded ({len(st.session_state['hub24_apir_codes'])} codes)")
+else:
+    st.sidebar.info("📄 No HUB24 data loaded yet")
+    
+if st.session_state['recommended_portfolio']:
+    st.sidebar.success(f"✅ Portfolio has {len(st.session_state['recommended_portfolio'])} funds")
 
 # Home Page
 def main():
