@@ -78,17 +78,28 @@ def load_and_process_csv(file):
             df[col] = df[col].astype(str)
             
             # Replace special characters and non-numeric values
+            # Use a more comprehensive approach to handle various forms of missing/non-numeric data
             df[col] = df[col].replace({
                 'Unknown': np.nan,
                 'N/A': np.nan,
                 'n/a': np.nan,
                 'na': np.nan,
                 '-': np.nan,
-                '': np.nan
+                '': np.nan,
+                'null': np.nan,
+                'NULL': np.nan,
+                'NaN': np.nan,
+                'nan': np.nan,
+                ' ': np.nan  # Handle spaces-only values
             })
             
             # Handle special minus symbol (−) by replacing it with standard minus (-)
             df[col] = df[col].str.replace('−', '-')
+            
+            # Handle any remaining non-numeric values more explicitly
+            # First identify values that are essentially empty or non-numeric
+            empty_mask = df[col].str.strip() == ''
+            df.loc[empty_mask, col] = np.nan
             
             # Convert to numeric, coercing any remaining non-numeric values to NaN
             df[col] = pd.to_numeric(df[col], errors='coerce')
