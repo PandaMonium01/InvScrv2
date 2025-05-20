@@ -86,20 +86,19 @@ The application will extract APIR codes from the PDF and filter your investment 
 show options that are available on the HUB24 platform.
 """)
 
-# Create two columns for the upload and results
-col1, col2 = st.columns([1, 1])
+st.header("Upload HUB24 PDF")
 
-with col1:
-    st.header("Upload HUB24 PDF")
+# PDF uploader for HUB24 investment options
+hub24_pdf = st.file_uploader(
+    "Upload HUB24 Investment Options PDF", 
+    type="pdf",
+    help="Upload a PDF containing the list of investment options available on the HUB24 platform."
+)
+
+if hub24_pdf is not None:
+    col1, col2 = st.columns([1, 1])
     
-    # PDF uploader for HUB24 investment options
-    hub24_pdf = st.file_uploader(
-        "Upload HUB24 Investment Options PDF", 
-        type="pdf",
-        help="Upload a PDF containing the list of investment options available on the HUB24 platform."
-    )
-    
-    if hub24_pdf is not None:
+    with col1:
         if st.button("Extract APIR Codes", use_container_width=True):
             with st.spinner("Extracting APIR codes from PDF..."):
                 # Extract APIR codes from the PDF
@@ -117,69 +116,71 @@ with col1:
                 else:
                     st.warning("No APIR codes found in the PDF. Make sure the PDF contains valid APIR codes.")
     
-    # Filter by HUB24 APIR codes
-    if len(st.session_state.hub24_apir_codes) > 0:
-        if st.button("Filter by HUB24 Options", use_container_width=True):
-            with st.spinner("Filtering investments by HUB24 options..."):
-                # Filter the investments by APIR codes
-                hub24_filtered = filter_investments_by_apir(st.session_state.combined_data, st.session_state.hub24_apir_codes)
-                st.session_state.hub24_filtered = hub24_filtered
-                
-                if hub24_filtered.empty:
-                    st.warning("No investments match the HUB24 platform options.")
-                else:
-                    st.success(f"Found {len(hub24_filtered)} investments available on HUB24 platform.")
+    with col2:
+        # Filter by HUB24 APIR codes
+        if len(st.session_state.hub24_apir_codes) > 0:
+            if st.button("Filter by HUB24 Options", use_container_width=True):
+                with st.spinner("Filtering investments by HUB24 options..."):
+                    # Filter the investments by APIR codes
+                    hub24_filtered = filter_investments_by_apir(st.session_state.combined_data, st.session_state.hub24_apir_codes)
+                    st.session_state.hub24_filtered = hub24_filtered
+                    
+                    if hub24_filtered.empty:
+                        st.warning("No investments match the HUB24 platform options.")
+                    else:
+                        st.success(f"Found {len(hub24_filtered)} investments available on HUB24 platform.")
 
-with col2:
-    st.header("HUB24 Filtered Results")
-    
-    # Display HUB24 filtered investments if available
-    if st.session_state.hub24_filtered is not None:
-        # Check if filtered list is empty
-        if st.session_state.hub24_filtered.empty:
-            st.warning("No investments in your list are available on the HUB24 platform based on the uploaded PDF.")
-        else:
-            # Define the column order with specified columns first
-            if 'APIR Code' in st.session_state.hub24_filtered.columns:
-                ordered_columns = [
-                    'Name',
-                    'APIR Code',
-                    'Morningstar Category',
-                    '3 Years Annualised (%)',
-                    'Investment Management Fee(%)',
-                    'Equity StyleBox™',
-                    'Morningstar Rating',
-                    '3 Year Beta',
-                    '3 Year Standard Deviation',
-                    '3 Year Sharpe Ratio'
-                ]
-                
-                # Get the actual columns from the dataframe
-                existing_columns = list(st.session_state.hub24_filtered.columns)
-                
-                # Keep only columns that exist in the actual dataframe
-                ordered_columns = [col for col in ordered_columns if col in existing_columns]
-                
-                # Add any remaining columns that weren't specified in the order
-                remaining_columns = [col for col in existing_columns if col not in ordered_columns]
-                final_column_order = ordered_columns + remaining_columns
-                
-                # Reorder the dataframe columns
-                reordered_df = st.session_state.hub24_filtered[final_column_order].copy()
-                
-                # Display the reordered dataframe
-                st.dataframe(reordered_df, use_container_width=True)
-                
-                # Export HUB24 filtered investments
-                csv_hub24 = reordered_df.to_csv(index=False)
-                st.download_button(
-                    label="Download HUB24 Available Investments",
-                    data=csv_hub24,
-                    file_name="hub24_available_investments.csv",
-                    mime="text/csv",
-                )
+# Display results section only after the upload section
+st.markdown("---")
+st.header("HUB24 Filtered Results")
+
+# Display HUB24 filtered investments if available
+if st.session_state.hub24_filtered is not None:
+    # Check if filtered list is empty
+    if st.session_state.hub24_filtered.empty:
+        st.warning("No investments in your list are available on the HUB24 platform based on the uploaded PDF.")
     else:
-        st.info("Upload a HUB24 PDF document and click 'Extract APIR Codes', then 'Filter by HUB24 Options' to see results.")
+        # Define the column order with specified columns first
+        if 'APIR Code' in st.session_state.hub24_filtered.columns:
+            ordered_columns = [
+                'Name',
+                'APIR Code',
+                'Morningstar Category',
+                '3 Years Annualised (%)',
+                'Investment Management Fee(%)',
+                'Equity StyleBox™',
+                'Morningstar Rating',
+                '3 Year Beta',
+                '3 Year Standard Deviation',
+                '3 Year Sharpe Ratio'
+            ]
+            
+            # Get the actual columns from the dataframe
+            existing_columns = list(st.session_state.hub24_filtered.columns)
+            
+            # Keep only columns that exist in the actual dataframe
+            ordered_columns = [col for col in ordered_columns if col in existing_columns]
+            
+            # Add any remaining columns that weren't specified in the order
+            remaining_columns = [col for col in existing_columns if col not in ordered_columns]
+            final_column_order = ordered_columns + remaining_columns
+            
+            # Reorder the dataframe columns
+            reordered_df = st.session_state.hub24_filtered[final_column_order].copy()
+            
+            # Display the reordered dataframe
+            st.dataframe(reordered_df, use_container_width=True)
+            
+            # Export HUB24 filtered investments
+            csv_hub24 = reordered_df.to_csv(index=False)
+            st.download_button(
+                label="Download HUB24 Available Investments",
+                data=csv_hub24,
+                file_name="hub24_available_investments.csv",
+                mime="text/csv",
+            )
+else:
+    st.info("Upload a HUB24 PDF document and click 'Extract APIR Codes', then 'Filter by HUB24 Options' to see results.")
 
 # Visualization section
 if st.session_state.hub24_filtered is not None and not st.session_state.hub24_filtered.empty:
