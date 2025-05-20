@@ -71,10 +71,12 @@ with col1:
             with st.spinner("Applying APL filter..."):
                 try:
                     # Convert Morningstar Rating to numeric (handle potential non-numeric values)
-                    numeric_ratings = pd.to_numeric(source_data['Morningstar Rating'], errors='coerce')
+                    ratings = source_data['Morningstar Rating'].copy()
+                    ratings = pd.to_numeric(ratings, errors='coerce')
                     
-                    # Filter based on the numeric ratings
-                    filtered_data = source_data[numeric_ratings >= 3]
+                    # Create a mask for funds with rating of 3 or higher
+                    # Use standard comparison which is safer
+                    filtered_data = source_data[ratings.fillna(0) >= 3]
                     
                     # Update the filtered selection
                     st.session_state['filtered_selection'] = filtered_data

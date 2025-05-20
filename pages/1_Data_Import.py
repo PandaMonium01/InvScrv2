@@ -124,7 +124,13 @@ if uploaded_files:
             try:
                 # Combine all dataframes
                 combined_data = pd.concat(st.session_state['dataframes'], ignore_index=True)
-                st.session_state['combined_data'] = combined_data
+                
+                # Store combined data in session state
+                st.session_state['combined_data'] = combined_data.copy()
+                
+                # Reset derived data when new files are processed
+                st.session_state['hub24_filtered'] = None
+                st.session_state['filtered_selection'] = None
                 
                 # Store the upload timestamp
                 st.session_state['data_last_updated'] = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -148,6 +154,11 @@ if uploaded_files:
                 
                 st.success(f"Successfully processed {len(st.session_state['dataframes'])} files with {len(combined_data)} investments.")
                 st.info("Navigate to the 'Data Analysis' page to view the imported data.")
+                
+                # Force session state to persist
+                st.experimental_set_query_params(
+                    data_loaded=True
+                )
                 
             except Exception as e:
                 st.error(f"Error calculating asset class averages: {str(e)}")
