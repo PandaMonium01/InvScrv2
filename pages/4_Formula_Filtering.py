@@ -59,6 +59,283 @@ filter_tabs = st.tabs(["Quick Filters", "Advanced Filters", "Preset Strategies"]
 with filter_tabs[0]:
     st.subheader("Quick Filters")
     col1, col2 = st.columns(2)
+    
+with filter_tabs[1]:
+    st.subheader("Advanced Filters")
+    st.markdown("""
+    Use these advanced filtering options to create sophisticated investment selections
+    based on multiple criteria and statistical measures.
+    """)
+    
+    # Create a multi-step filtering interface
+    st.markdown("### 1. Performance Filters")
+    perf_col1, perf_col2 = st.columns(2)
+    
+    with perf_col1:
+        min_return = st.slider("Minimum Return (%)", 
+                               min_value=0.0, 
+                               max_value=20.0, 
+                               value=0.0, 
+                               step=0.5,
+                               help="Filter investments with returns greater than this value")
+    
+    with perf_col2:
+        max_expense = st.slider("Maximum Expense Ratio (%)", 
+                                min_value=0.0, 
+                                max_value=3.0, 
+                                value=3.0, 
+                                step=0.1,
+                                help="Filter investments with expense ratios lower than this value")
+    
+    st.markdown("### 2. Risk Metrics")
+    risk_col1, risk_col2 = st.columns(2)
+    
+    with risk_col1:
+        max_risk = st.slider("Maximum Standard Deviation", 
+                             min_value=0.0, 
+                             max_value=30.0, 
+                             value=30.0, 
+                             step=1.0,
+                             help="Filter investments with standard deviation lower than this value")
+    
+    with risk_col2:
+        min_sharpe = st.slider("Minimum Sharpe Ratio", 
+                               min_value=0.0, 
+                               max_value=2.0, 
+                               value=0.0, 
+                               step=0.1,
+                               help="Filter investments with Sharpe ratio greater than this value")
+    
+    st.markdown("### 3. Statistical Filters")
+    stat_col1, stat_col2 = st.columns(2)
+    
+    with stat_col1:
+        return_percentile = st.slider("Minimum Return Percentile", 
+                                     min_value=0, 
+                                     max_value=100, 
+                                     value=0, 
+                                     step=5,
+                                     help="Filter to include only the top N% of investments by return")
+    
+    with stat_col2:
+        expense_percentile = st.slider("Maximum Expense Percentile", 
+                                      min_value=0, 
+                                      max_value=100, 
+                                      value=100, 
+                                      step=5,
+                                      help="Filter to include only the bottom N% of investments by expense")
+    
+    # Apply advanced filters button
+    if st.button("Apply Advanced Filters", use_container_width=True):
+        source_data = st.session_state['hub24_filtered'] if st.session_state['hub24_filtered'] is not None else st.session_state['combined_data']
+        
+        with st.spinner("Applying advanced filters..."):
+            try:
+                # Calculate additional metrics for better filtering
+                enhanced_data = calculate_performance_metrics(source_data)
+                
+                # Start with all rows selected
+                mask = pd.Series([True] * len(enhanced_data))
+                
+                # Apply each filter based on user input
+                if min_return > 0:
+                    mask = mask & (enhanced_data['3 Years Annualised (%)'] >= min_return)
+                
+                if max_expense < 3.0:
+                    mask = mask & (enhanced_data['Investment Management Fee(%)'] <= max_expense)
+                
+                if max_risk < 30.0:
+                    mask = mask & (enhanced_data['3 Year Standard Deviation'] <= max_risk)
+                
+                if min_sharpe > 0:
+                    mask = mask & (enhanced_data['3 Year Sharpe Ratio'] >= min_sharpe)
+                
+                # Apply percentile filters if selected
+                if return_percentile > 0:
+                    return_threshold = np.percentile(enhanced_data['3 Years Annualised (%)'].dropna(), 100 - return_percentile)
+                    mask = mask & (enhanced_data['3 Years Annualised (%)'] >= return_threshold)
+                
+                if expense_percentile < 100:
+                    expense_threshold = np.percentile(enhanced_data['Investment Management Fee(%)'].dropna(), expense_percentile)
+                    mask = mask & (enhanced_data['Investment Management Fee(%)'] <= expense_threshold)
+                
+                # Apply the combined mask
+                filtered_data = enhanced_data[mask].copy()
+                
+                # Store the filtered results
+                st.session_state['filtered_selection'] = filtered_data
+                st.session_state['last_formula'] = "Advanced Filtering"
+                
+                # Show results
+                if filtered_data.empty:
+                    st.warning("No investments match all the selected criteria. Try relaxing some filters.")
+                else:
+                    st.success(f"Found {len(filtered_data)} investments matching all criteria.")
+                    # Show a preview of the filtered data
+                    st.dataframe(filtered_data[['Name', 'APIR Code', 'Morningstar Category', 
+                                              '3 Years Annualised (%)', 'Investment Management Fee(%)']].head(5))
+            
+            except Exception as e:
+                st.error(f"Error applying advanced filters: {str(e)}")
+    
+with filter_tabs[2]:
+    st.subheader("Preset Strategies")
+    st.info("Choose from pre-configured investment strategies to quickly filter your data")
+    
+    # Offer preset strategy options
+    strategy = st.selectbox(
+        "Select a strategy",
+        [
+            "Balanced Portfolio",
+            "High Growth",
+            "Low Cost",
+            "Income Focus",
+            "Conservative",
+            "Quality Value",
+            "Category Leaders"
+        ],
+        help="Pre-configured strategies with optimized filtering parameters"
+    )
+    
+    # Display strategy description
+    if strategy == "Balanced Portfolio":
+        st.markdown("""
+        **Balanced Portfolio Strategy:**
+        This strategy balances return and risk, selecting investments with:
+        - Above-average returns
+        - Below-average expenses
+        - Moderate risk profile
+        - Positive risk-adjusted performance
+        """)
+    elif strategy == "High Growth":
+        st.markdown("""
+        **High Growth Strategy:**
+        Focused on maximizing growth potential:
+        - Top 25% of returns
+        - Above-average Sharpe ratio
+        - Accepts higher volatility for growth
+        """)
+    elif strategy == "Low Cost":
+        st.markdown("""
+        **Low Cost Strategy:**
+        Prioritizes fee efficiency:
+        - Bottom 25% in expense ratio
+        - Acceptable performance
+        - Good for long-term passive investment
+        """)
+    elif strategy == "Income Focus":
+        st.markdown("""
+        **Income Focus Strategy:**
+        Emphasizes stable income generation:
+        - Fixed Income categories
+        - Lower volatility
+        - Better risk-adjusted returns
+        """)
+    elif strategy == "Conservative":
+        st.markdown("""
+        **Conservative Strategy:**
+        Minimizes downside risk:
+        - Lower beta
+        - Lower standard deviation
+        - Moderate expenses
+        - Capital preservation focus
+        """)
+    elif strategy == "Quality Value":
+        st.markdown("""
+        **Quality Value Strategy:**
+        Identifies undervalued quality investments:
+        - Strong Sharpe ratio
+        - Moderate fees
+        - Strong relative performance
+        """)
+    elif strategy == "Category Leaders":
+        st.markdown("""
+        **Category Leaders Strategy:**
+        Selects top performers within each investment category:
+        - Top 20% in each Morningstar Category
+        - Above-average Sharpe ratio
+        - Competitive fees
+        """)
+    
+    # Apply preset strategy button
+    if st.button("Apply Strategy", use_container_width=True):
+        source_data = st.session_state['hub24_filtered'] if st.session_state['hub24_filtered'] is not None else st.session_state['combined_data']
+        
+        with st.spinner(f"Applying {strategy} strategy..."):
+            try:
+                # Calculate additional metrics for strategy implementation
+                enhanced_data = calculate_performance_metrics(source_data)
+                
+                # Define strategy formulas
+                formula = ""
+                if strategy == "Balanced Portfolio":
+                    formula = "(`3 Years Annualised (%)` > 5) & (`Investment Management Fee(%)` < 1.0) & (`3 Year Standard Deviation` < 15)"
+                elif strategy == "High Growth":
+                    # Top 25% of returns
+                    return_threshold = np.percentile(enhanced_data['3 Years Annualised (%)'].dropna(), 75)
+                    mask = enhanced_data['3 Years Annualised (%)'] >= return_threshold
+                    filtered_data = enhanced_data[mask].copy()
+                elif strategy == "Low Cost":
+                    # Bottom 25% in expense ratio
+                    expense_threshold = np.percentile(enhanced_data['Investment Management Fee(%)'].dropna(), 25)
+                    mask = enhanced_data['Investment Management Fee(%)'] <= expense_threshold
+                    filtered_data = enhanced_data[mask].copy()
+                elif strategy == "Income Focus":
+                    # Focus on Fixed Income categories with good risk-adjusted returns
+                    mask = enhanced_data['Morningstar Category'].str.contains('Fixed Income|Bond|Income', case=False, na=False)
+                    mask = mask & (enhanced_data['3 Year Sharpe Ratio'] > enhanced_data['3 Year Sharpe Ratio'].median())
+                    filtered_data = enhanced_data[mask].copy()
+                elif strategy == "Conservative":
+                    # Lower risk, lower beta
+                    risk_threshold = np.percentile(enhanced_data['3 Year Standard Deviation'].dropna(), 30)
+                    mask = (enhanced_data['3 Year Standard Deviation'] <= risk_threshold)
+                    mask = mask & (enhanced_data['3 Year Beta'] < 0.8)
+                    filtered_data = enhanced_data[mask].copy()
+                elif strategy == "Quality Value":
+                    # Strong Sharpe ratio, moderate fees
+                    sharpe_threshold = np.percentile(enhanced_data['3 Year Sharpe Ratio'].dropna(), 70)
+                    expense_threshold = np.percentile(enhanced_data['Investment Management Fee(%)'].dropna(), 60)
+                    mask = (enhanced_data['3 Year Sharpe Ratio'] >= sharpe_threshold)
+                    mask = mask & (enhanced_data['Investment Management Fee(%)'] <= expense_threshold)
+                    filtered_data = enhanced_data[mask].copy()
+                elif strategy == "Category Leaders":
+                    # For Category Leaders, use a special approach to get top performers in each category
+                    result = []
+                    for category, group in enhanced_data.groupby('Morningstar Category'):
+                        if len(group) > 0:
+                            # Select top 20% in each category by returns
+                            threshold = np.percentile(group['3 Years Annualised (%)'].dropna(), 80)
+                            top_in_category = group[
+                                (group['3 Years Annualised (%)'] >= threshold) & 
+                                (group['3 Year Sharpe Ratio'] > group['3 Year Sharpe Ratio'].median())
+                            ]
+                            result.append(top_in_category)
+                    
+                    if result:
+                        filtered_data = pd.concat(result)
+                    else:
+                        filtered_data = pd.DataFrame()
+                
+                # Only use formula engine for Balanced Portfolio
+                if strategy == "Balanced Portfolio":
+                    filtered_data = apply_formula(enhanced_data, formula)
+                
+                # Store the filtered results
+                st.session_state['filtered_selection'] = filtered_data
+                st.session_state['last_formula'] = f"Strategy: {strategy}"
+                
+                # Show results
+                if filtered_data.empty:
+                    st.warning(f"No investments match the {strategy} criteria.")
+                else:
+                    st.success(f"Found {len(filtered_data)} investments matching the {strategy} strategy.")
+                    # Show a preview of the filtered data
+                    st.dataframe(filtered_data[['Name', 'APIR Code', 'Morningstar Category', 
+                                              '3 Years Annualised (%)', 'Investment Management Fee(%)']].head(5))
+            
+            except Exception as e:
+                st.error(f"Error applying strategy: {str(e)}")
+                st.error(f"Debug info: {strategy}")
 
 with col1:
     # APL filter button for Morningstar Rating >= 3
