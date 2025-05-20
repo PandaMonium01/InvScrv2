@@ -32,11 +32,12 @@ def main():
     
     ### How to use:
     
-    1. **Data Import** - Upload CSV files containing investment data
-    2. **HUB24 Filter** - Filter investments available on the HUB24 platform
-    3. **Formula Filtering** - Apply custom formulas to filter investments
-    4. **Data Analysis** - Analyze the filtered investments
-    5. **Recommended Portfolio** - View and manage your selected portfolio
+    1. **Upload File** - Simple CSV file upload (recommended if having issues with Data Import page)
+    2. **Data Import** - Advanced CSV upload with multiple files
+    3. **HUB24 Filter** - Filter investments available on the HUB24 platform
+    4. **Formula Filtering** - Apply custom formulas to filter investments
+    5. **Data Analysis** - Analyze the filtered investments
+    6. **Recommended Portfolio** - View and manage your selected portfolio
     
     ### Data Status:
     """)
