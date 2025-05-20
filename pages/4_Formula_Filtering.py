@@ -53,10 +53,12 @@ if 'selected_categories' not in st.session_state:
 if 'recommended_portfolio' not in st.session_state:
     st.session_state.recommended_portfolio = {}
 
-# Quick filtering tools
-st.subheader("Quick Filters")
+# Create tabs for different filtering approaches
+filter_tabs = st.tabs(["Quick Filters", "Advanced Filters", "Preset Strategies"])
 
-col1, col2 = st.columns(2)
+with filter_tabs[0]:
+    st.subheader("Quick Filters")
+    col1, col2 = st.columns(2)
 
 with col1:
     # APL filter button for Morningstar Rating >= 3
@@ -75,8 +77,9 @@ with col1:
                     ratings = pd.to_numeric(ratings, errors='coerce')
                     
                     # Create a mask for funds with rating of 3 or higher
-                    # Use standard comparison which is safer
-                    filtered_data = source_data[ratings.fillna(0) >= 3]
+                    # Convert to numpy array for safer comparison
+                    mask = ratings.fillna(0).values >= 3
+                    filtered_data = source_data[mask]
                     
                     # Update the filtered selection
                     st.session_state['filtered_selection'] = filtered_data
