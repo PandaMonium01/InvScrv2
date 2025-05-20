@@ -37,12 +37,21 @@ def validate_csv(file):
                 # Filter out empty values before validation for all numeric columns
                 values = df[col].astype(str)
                 
+                # Handle literal "nan" strings by replacing them with actual np.nan values
+                values = values.replace({'nan': '', 'NaN': '', 'Nan': '', 'NAN': ''})
+                
                 # Print problematic values for debugging (temp)
                 problematic_values = []
                 for idx, val in enumerate(values):
-                    # Skip blank/empty values
-                    if not val or val.strip() == '' or val.lower() in ['na', 'n/a', 'unknown', 'null', 'nan']:
+                    # Skip blank/empty values and recognized missing value terms
+                    if (not val or val.strip() == '' or 
+                        val.lower() in ['na', 'n/a', 'unknown', 'null', 'nan', '-']):
                         continue
+                    
+                    # Handle literal nan values case-insensitively
+                    if val.lower().strip() == 'nan':
+                        continue
+                        
                     # Try to convert to float
                     try:
                         # Replace special Unicode minus with standard ASCII minus
@@ -63,7 +72,11 @@ def validate_csv(file):
                 # Replace special Unicode minus symbol (−) with standard ASCII minus (-)
                 # This is critical for negative numbers in CSV files that use the Unicode minus
                 values = values.str.replace('−', '-')
-                non_empty_values = values[values.str.strip() != '']
+                # Replace literal "nan" strings with empty strings
+                values = values.str.replace('(?i)nan', '', regex=True)
+                
+                # Skip empty values for validation
+                non_empty_values = values[(values.str.strip() != '') & (~values.isna())]
                 if len(non_empty_values) > 0:
                     pd.to_numeric(non_empty_values)
             except Exception as e:
@@ -102,6 +115,9 @@ def load_and_process_csv(file):
             # Convert to string first to handle any existing data type
             df[col] = df[col].astype(str)
             
+            # Clean up literal string 'nan' values which are causing problems
+            df[col] = df[col].apply(lambda x: np.nan if isinstance(x, str) and x.lower().strip() == 'nan' else x)
+            
             # Replace special characters and non-numeric values
             # Use a more comprehensive approach to handle various forms of missing/non-numeric data
             df[col] = df[col].replace({
@@ -113,9 +129,12 @@ def load_and_process_csv(file):
                 '': np.nan,
                 'null': np.nan,
                 'NULL': np.nan,
-                'NaN': np.nan,
+                ' ': np.nan,  # Handle spaces-only values
+                # Remove all variations of literal "nan" strings
                 'nan': np.nan,
-                ' ': np.nan  # Handle spaces-only values
+                'NaN': np.nan, 
+                'Nan': np.nan,
+                'NAN': np.nan
             })
             
             # Handle special Unicode minus symbol (−) by replacing it with standard ASCII minus (-)
@@ -140,7 +159,10 @@ def load_and_process_csv(file):
                 df[col] = df[col].apply(lambda x: x.split('/')[0].strip() if isinstance(x, str) and '/' in x else x)
                 
                 # As requested by client, treat zeros as missing values in this column
-                df[col] = df[col].apply(lambda x: np.nan if x == '0' or x == '0.0' or x == '0.00' else x)
+                df[col] = df[col].apply(lambda x: np.nan if (isinstance(x, str) and x.strip() in ['0', '0.0', '0.00']) else x)
+                
+                # Handle literal nan strings one more time (in case they survived earlier processing)
+                df[col] = df[col].apply(lambda x: np.nan if (isinstance(x, str) and x.lower().strip() == 'nan') else x)
                 
                 # Attempt to fix ranges like "0.5-0.8" by taking the average
                 def process_range(val):
