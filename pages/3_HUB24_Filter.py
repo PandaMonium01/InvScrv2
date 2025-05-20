@@ -14,6 +14,12 @@ st.set_page_config(
 
 st.title("HUB24 Platform Filter")
 
+# Initialize the session state variables if they don't exist
+if 'combined_data' not in st.session_state:
+    st.session_state['combined_data'] = None
+if 'hub24_filtered' not in st.session_state:
+    st.session_state['hub24_filtered'] = None
+
 # Extract APIR codes from a PDF file
 def extract_apir_codes_from_pdf(pdf_file):
     try:

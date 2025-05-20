@@ -13,8 +13,12 @@ st.set_page_config(
 
 st.title("Formula Filtering")
 
+# Initialize session state variables if they don't exist
+if 'combined_data' not in st.session_state:
+    st.session_state['combined_data'] = None
+
 # Check if data is available
-if st.session_state.combined_data is None or st.session_state.combined_data.empty:
+if st.session_state['combined_data'] is None or (isinstance(st.session_state['combined_data'], pd.DataFrame) and st.session_state['combined_data'].empty):
     st.warning("No data available for filtering. Please import data first on the 'Data Import' page.")
     st.stop()
 
@@ -58,7 +62,7 @@ with col1:
     # APL filter button for Morningstar Rating >= 3
     if st.button("APL Filter (Morningstar Rating ≥ 3)", use_container_width=True):
         # Use data that might already have been filtered by HUB24
-        source_data = st.session_state.combined_data if st.session_state.hub24_filtered is None else st.session_state.hub24_filtered
+        source_data = st.session_state['combined_data'] if st.session_state['hub24_filtered'] is None else st.session_state['hub24_filtered']
         
         # Check if column exists
         if 'Morningstar Rating' not in source_data.columns:
@@ -73,7 +77,7 @@ with col1:
                     filtered_data = source_data[numeric_ratings >= 3]
                     
                     # Update the filtered selection
-                    st.session_state.filtered_selection = filtered_data
+                    st.session_state['filtered_selection'] = filtered_data
                     
                     if filtered_data.empty:
                         st.warning("No investments match the APL filter criteria (Morningstar Rating ≥ 3).")
