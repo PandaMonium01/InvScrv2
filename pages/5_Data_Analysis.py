@@ -163,19 +163,75 @@ with tabs[0]:
         # Reorder the dataframe columns
         reordered_df = selection_df[final_column_order].copy()
         
-        # Display the dataframe with editable checkboxes
-        edited_df = st.data_editor(
-            reordered_df,
-            column_config={
-                "Select": st.column_config.CheckboxColumn(
-                    "Select",
-                    help="Check to add to portfolio",
-                    default=False,
+        # Group by Morningstar Category
+        if 'Morningstar Category' in reordered_df.columns:
+            # Get unique categories
+            categories = reordered_df['Morningstar Category'].dropna().unique()
+            
+            # Create tabs for "All" and individual categories
+            category_tabs = ["All Categories"] + list(categories)
+            tabs = st.tabs(category_tabs)
+            
+            # All categories tab
+            with tabs[0]:
+                edited_df = st.data_editor(
+                    reordered_df,
+                    column_config={
+                        "Select": st.column_config.CheckboxColumn(
+                            "Select",
+                            help="Check to add to portfolio",
+                            default=False,
+                        )
+                    },
+                    use_container_width=True,
+                    hide_index=True,
                 )
-            },
-            use_container_width=True,
-            hide_index=True,
-        )
+            
+            # Individual category tabs
+            for i, category in enumerate(categories):
+                with tabs[i+1]:
+                    # Filter dataframe for this category
+                    category_df = reordered_df[reordered_df['Morningstar Category'] == category].copy()
+                    
+                    # Only show if there's data for this category
+                    if not category_df.empty:
+                        st.markdown(f"### {category}")
+                        st.write(f"{len(category_df)} investments in this category")
+                        
+                        # Display editable dataframe for this category
+                        cat_edited_df = st.data_editor(
+                            category_df,
+                            column_config={
+                                "Select": st.column_config.CheckboxColumn(
+                                    "Select",
+                                    help="Check to add to portfolio",
+                                    default=False,
+                                )
+                            },
+                            use_container_width=True,
+                            hide_index=True,
+                        )
+                        
+                        # Merge edited values back to the main edited_df
+                        for idx, row in cat_edited_df.iterrows():
+                            if idx in edited_df.index:
+                                edited_df.loc[idx, 'Select'] = row['Select']
+                    else:
+                        st.info(f"No investments in the {category} category")
+        else:
+            # If no category column, just display the regular table
+            edited_df = st.data_editor(
+                reordered_df,
+                column_config={
+                    "Select": st.column_config.CheckboxColumn(
+                        "Select",
+                        help="Check to add to portfolio",
+                        default=False,
+                    )
+                },
+                use_container_width=True,
+                hide_index=True,
+            )
         
         # Process the edited dataframe
         changed_rows = []
