@@ -139,6 +139,9 @@ def load_and_process_csv(file):
                 # Sometimes fees are presented as "X.XX / Y.YY" - take the first number
                 df[col] = df[col].apply(lambda x: x.split('/')[0].strip() if isinstance(x, str) and '/' in x else x)
                 
+                # As requested by client, treat zeros as missing values in this column
+                df[col] = df[col].apply(lambda x: np.nan if x == '0' or x == '0.0' or x == '0.00' else x)
+                
                 # Attempt to fix ranges like "0.5-0.8" by taking the average
                 def process_range(val):
                     if isinstance(val, str) and '-' in val:

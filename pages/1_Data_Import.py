@@ -12,6 +12,22 @@ st.set_page_config(
     layout="wide",
 )
 
+# Initialize session state variables
+if 'dataframes' not in st.session_state:
+    st.session_state.dataframes = []
+if 'combined_data' not in st.session_state:
+    st.session_state.combined_data = None
+if 'asset_class_averages' not in st.session_state:
+    st.session_state.asset_class_averages = None
+if 'filtered_selection' not in st.session_state:
+    st.session_state.filtered_selection = None
+if 'formula' not in st.session_state:
+    st.session_state.formula = ""
+if 'hub24_filtered' not in st.session_state:
+    st.session_state.hub24_filtered = None
+if 'hub24_apir_codes' not in st.session_state:
+    st.session_state.hub24_apir_codes = []
+
 st.title("Data Import")
 
 st.markdown("""
@@ -129,10 +145,12 @@ if st.session_state.combined_data is not None and not st.session_state.combined_
     col1, col2 = st.columns(2)
     
     with col1:
-        st.metric("Number of Investments", len(st.session_state.combined_data))
+        num_investments = int(len(st.session_state.combined_data))
+        st.metric("Number of Investments", num_investments)
         
     with col2:
-        st.metric("Number of Categories", st.session_state.combined_data['Morningstar Category'].nunique())
+        num_categories = int(st.session_state.combined_data['Morningstar Category'].nunique())
+        st.metric("Number of Categories", num_categories)
     
     # Show sample of the data
     st.subheader("Sample Data (5 rows)")
