@@ -36,7 +36,8 @@ def validate_csv(file):
             try:
                 # Filter out empty values before validation for all numeric columns
                 values = df[col].astype(str)
-                # Replace special minus symbol (−) with standard minus (-)
+                # Replace special Unicode minus symbol (−) with standard ASCII minus (-)
+                # This is critical for negative numbers in CSV files that use the Unicode minus
                 values = values.str.replace('−', '-')
                 non_empty_values = values[values.str.strip() != '']
                 if len(non_empty_values) > 0:
@@ -93,8 +94,10 @@ def load_and_process_csv(file):
                 ' ': np.nan  # Handle spaces-only values
             })
             
-            # Handle special minus symbol (−) by replacing it with standard minus (-)
-            df[col] = df[col].str.replace('−', '-')
+            # Handle special Unicode minus symbol (−) by replacing it with standard ASCII minus (-)
+            # This is critical for negative numbers in CSV files that use the Unicode minus
+            if isinstance(df[col], pd.Series):
+                df[col] = df[col].str.replace('−', '-')
             
             # Handle any remaining non-numeric values more explicitly
             # First identify values that are essentially empty or non-numeric
@@ -102,6 +105,7 @@ def load_and_process_csv(file):
             df.loc[empty_mask, col] = np.nan
             
             # Convert to numeric, coercing any remaining non-numeric values to NaN
+            # This ensures that properly formatted negative numbers (with either minus symbol) are parsed correctly
             df[col] = pd.to_numeric(df[col], errors='coerce')
         
         # Check for missing values in important columns
