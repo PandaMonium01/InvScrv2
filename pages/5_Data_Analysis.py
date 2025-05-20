@@ -42,8 +42,60 @@ with tabs[0]:
     if st.session_state.filtered_selection is not None and not st.session_state.filtered_selection.empty:
         st.info(f"Formula Filter: {len(st.session_state.filtered_selection)} investments matched your formula criteria")
     
+    # Initialize recommended_portfolio in session state if it doesn't exist
+    if 'recommended_portfolio' not in st.session_state:
+        st.session_state.recommended_portfolio = {}
+        
+    # Function to add selected funds to the recommended portfolio
+    def add_to_portfolio(fund_name, fund_apir, fund_category, comments):
+        if fund_apir not in st.session_state.recommended_portfolio:
+            st.session_state.recommended_portfolio[fund_apir] = {
+                'Name': fund_name,
+                'APIR Code': fund_apir,
+                'Morningstar Category': fund_category,
+                'Comments': comments
+            }
+            st.success(f"Added {fund_name} to your recommended portfolio")
+        else:
+            st.info(f"{fund_name} is already in your recommended portfolio")
+    
     # Ensure the dataframe displays the specified columns first
     if display_data is not None and not display_data.empty:
+        # Add fund selection interface using expander
+        with st.expander("Select Funds for Recommended Portfolio", expanded=False):
+            st.markdown("""
+            Select funds from the current data view to add to your recommended portfolio. 
+            You can add comments for each selection to explain your rationale.
+            """)
+            
+            # Form for adding a fund to the portfolio
+            fund_selector = st.selectbox(
+                "Select a fund to add to your portfolio",
+                options=display_data['Name'].tolist(),
+                key="fund_selector_analysis"
+            )
+            
+            # Get the selected fund details
+            selected_fund = display_data[display_data['Name'] == fund_selector].iloc[0]
+            
+            selected_apir = selected_fund['APIR Code'] if 'APIR Code' in selected_fund else "Unknown"
+            selected_category = selected_fund['Morningstar Category'] if 'Morningstar Category' in selected_fund else "Unknown"
+            
+            # Comments for the selected fund
+            fund_comments = st.text_area(
+                "Comments (reason for selection, allocation percentage, etc.)",
+                key="fund_comments_analysis",
+                help="Add your rationale for selecting this fund or any other notes."
+            )
+            
+            if st.button("Add to Recommended Portfolio", key="add_button_analysis", use_container_width=True):
+                add_to_portfolio(fund_selector, selected_apir, selected_category, fund_comments)
+                
+            if st.session_state.recommended_portfolio:
+                num_selected = len(st.session_state.recommended_portfolio)
+                st.success(f"You have {num_selected} funds in your recommended portfolio.")
+                st.info("Go to the **Recommended Portfolio** page to view and manage your selections.")
+        
         # Define the column order with specified columns first
         ordered_columns = [
             'Name',
