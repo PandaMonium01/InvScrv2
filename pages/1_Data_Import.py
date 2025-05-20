@@ -97,8 +97,8 @@ if st.session_state['combined_data'] is not None and not uploaded_files:
     if 'data_last_updated' in st.session_state and st.session_state['data_last_updated'] is not None:
         st.info(f"Data was last updated on: {st.session_state['data_last_updated']}")
 
-# Process new uploads or provide info about existing data
-if import_option == "Upload CSV Files" and uploaded_files:
+# Process new uploads
+if uploaded_files:
     if st.button("Process Files", use_container_width=True):
         # Clear existing data only when processing new files
         st.session_state['dataframes'] = []
@@ -167,10 +167,10 @@ if import_option == "Upload CSV Files" and uploaded_files:
             except Exception as e:
                 st.error(f"Error calculating asset class averages: {str(e)}")
     
-    # Show message about existing data
-    elif st.session_state['combined_data'] is not None:
-        st.info("Previously uploaded data is already loaded. Upload new files and click 'Process Files' to replace the data.")
-        if st.session_state['data_last_updated'] is not None:
+    # Show message about existing data when new files are uploaded but not processed
+    elif uploaded_files and st.session_state['combined_data'] is not None:
+        st.info("Previously uploaded data is already loaded. Click 'Process Files' to replace with new data.")
+        if 'data_last_updated' in st.session_state and st.session_state['data_last_updated'] is not None:
             st.info(f"Data was last updated on: {st.session_state['data_last_updated']}")
 
 # Show data summary if available
