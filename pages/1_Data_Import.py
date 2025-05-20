@@ -103,41 +103,66 @@ if import_option == "Use Sample Data":
     st.info("Using the sample investment data provided with the application.")
     if st.button("Load Sample Data", use_container_width=True):
         try:
-            # Load the sample data file
-            import os
-            sample_file_path = "sample_data/investment_data_sample.csv"
+            # Create sample data directly rather than loading from file
+            # This avoids file permission issues
+            sample_data = {
+                'Name': ['Growth Fund', 'Income Fund', 'Balanced Fund', 'Global ETF', 'Property Fund',
+                         'Conservative Fund', 'Small Cap Fund', 'Emerging Markets', 'International Shares',
+                         'Bond Fund', 'Technology Fund', 'Healthcare Fund', 'Sustainable Fund', 'Fixed Term', 'Cash Fund'],
+                'APIR Code': ['ABC123AU', 'DEF456AU', 'GHI789AU', 'JKL012AU', 'MNO345AU',
+                              'PQR678AU', 'STU901AU', 'VWX234AU', 'YZA567AU', 'BCD890AU',
+                              'EFG123AU', 'HIJ456AU', 'KLM789AU', 'NOP012AU', 'QRS345AU'],
+                'Morningstar Category': ['Australian Equity Large Blend', 'Fixed Income', 'Diversified', 'Global Equity', 'Real Estate',
+                                         'Conservative Allocation', 'Australian Equity Small Cap', 'Emerging Markets', 'International Equity',
+                                         'Fixed Income Global', 'Sector Equity Technology', 'Sector Equity Healthcare', 'ESG', 'Fixed Income Australia', 'Cash'],
+                '3 Years Annualised (%)': [8.2, 4.5, 6.3, 9.7, 5.8, 3.8, 10.5, 12.3, 8.9, 3.2, 14.5, 9.8, 7.5, 3.6, 1.8],
+                'Investment Management Fee(%)': [0.85, 0.65, 0.75, 0.95, 0.9, 0.6, 1.2, 1.5, 0.95, 0.5, 1.1, 1.0, 0.85, 0.55, 0.3],
+                'Equity StyleBox™': ['Large Growth', 'Mid Value', 'Mid Blend', 'Large Value', 'Small Value',
+                                     'Mid Blend', 'Small Growth', 'Large Growth', 'Large Growth', 'Mid Value',
+                                     'Large Growth', 'Large Blend', 'Large Growth', 'Mid Value', 'Mid Blend'],
+                'Morningstar Rating': [5, 4, 3, 4, 3, 4, 5, 4, 4, 3, 5, 4, 4, 3, 3],
+                '3 Year Beta': [1.1, 0.4, 0.8, 1.2, 0.9, 0.5, 1.4, 1.5, 1.1, 0.3, 1.3, 0.9, 1.0, 0.4, 0.1],
+                '3 Year Standard Deviation': [12.5, 3.2, 7.4, 14.1, 11.6, 4.8, 16.2, 18.7, 13.2, 2.8, 17.5, 11.2, 10.5, 3.5, 0.9],
+                '3 Year Sharpe Ratio': [0.65, 0.95, 0.72, 0.68, 0.55, 0.8, 0.7, 0.72, 0.67, 0.9, 0.82, 0.75, 0.7, 0.85, 0.5]
+            }
             
-            if os.path.exists(sample_file_path):
-                df = pd.read_csv(sample_file_path)
-                # Store the sample data
-                st.session_state['dataframes'] = [df]
-                st.session_state['combined_data'] = df.copy()
-                
-                # Calculate averages for specific fields
-                avg_fields = [
-                    '3 Years Annualised (%)',
-                    'Investment Management Fee(%)',
-                    '3 Year Beta',
-                    '3 Year Standard Deviation',
-                    '3 Year Sharpe Ratio'
-                ]
-                
-                # Create subset for averages
-                existing_fields = [f for f in avg_fields if f in df.columns]
-                subset_for_avg = df[['Morningstar Category'] + existing_fields].copy()
-                
-                # Calculate averages
-                st.session_state['asset_class_averages'] = subset_for_avg.groupby('Morningstar Category').mean(numeric_only=True)
-                
-                # Set the timestamp
-                st.session_state['data_last_updated'] = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
-                
-                st.success(f"Successfully loaded sample data with {len(df)} investments.")
-                st.info("Navigate to the 'Data Analysis' page to view the data.")
-            else:
-                st.error(f"Sample data file not found at {sample_file_path}")
+            # Create DataFrame from the dictionary
+            df = pd.DataFrame(sample_data)
+            
+            # Store the sample data
+            st.session_state['dataframes'] = [df]
+            st.session_state['combined_data'] = df.copy()
+            
+            # Calculate averages for specific fields
+            avg_fields = [
+                '3 Years Annualised (%)',
+                'Investment Management Fee(%)',
+                '3 Year Beta',
+                '3 Year Standard Deviation',
+                '3 Year Sharpe Ratio'
+            ]
+            
+            # Create subset for averages
+            existing_fields = [f for f in avg_fields if f in df.columns]
+            subset_for_avg = df[['Morningstar Category'] + existing_fields].copy()
+            
+            # Calculate averages
+            st.session_state['asset_class_averages'] = subset_for_avg.groupby('Morningstar Category').mean(numeric_only=True)
+            
+            # Set the timestamp
+            st.session_state['data_last_updated'] = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
+            
+            # Reset derived data like filtered selections
+            st.session_state['hub24_filtered'] = None
+            st.session_state['filtered_selection'] = None
+            
+            st.success(f"Successfully loaded sample data with {len(df)} investments.")
+            st.info("Navigate to other pages to analyze and filter the data.")
+            
+            # Force a refresh
+            st.experimental_rerun()
         except Exception as e:
-            st.error(f"Error loading sample data: {str(e)}")
+            st.error(f"Error creating sample data: {str(e)}")
 
 # Check for previously uploaded data
 if st.session_state['combined_data'] is not None and import_option == "Upload CSV Files" and not uploaded_files:
