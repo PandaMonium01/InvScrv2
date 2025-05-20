@@ -17,14 +17,33 @@ if st.session_state.combined_data is None or st.session_state.combined_data.empt
     st.warning("No data available for analysis. Please import data first on the 'Data Import' page.")
     st.stop()
 
+# Determine which data to display based on filter status
+display_data = None
+if st.session_state.filtered_selection is not None and not st.session_state.filtered_selection.empty:
+    display_data = st.session_state.filtered_selection
+    data_status = "Formula Filtered Data"
+elif st.session_state.hub24_filtered is not None and not st.session_state.hub24_filtered.empty:
+    display_data = st.session_state.hub24_filtered
+    data_status = "HUB24 Filtered Data"
+else:
+    display_data = st.session_state.combined_data
+    data_status = "Combined Data (No Filters Applied)"
+
 # Create tabs for different views
-tabs = st.tabs(["Combined Data", "Category Averages", "Risk-Return Plot"])
+tabs = st.tabs(["Current Data View", "Category Averages", "Risk-Return Plot"])
 
 with tabs[0]:
-    st.header("Combined Investment Data")
+    st.header(data_status)
+    
+    # Add filter status information
+    if st.session_state.hub24_filtered is not None and not st.session_state.hub24_filtered.empty:
+        st.info(f"HUB24 Filter: {len(st.session_state.hub24_filtered)} investments available on HUB24 platform")
+    
+    if st.session_state.filtered_selection is not None and not st.session_state.filtered_selection.empty:
+        st.info(f"Formula Filter: {len(st.session_state.filtered_selection)} investments matched your formula criteria")
     
     # Ensure the dataframe displays the specified columns first
-    if st.session_state.combined_data is not None and not st.session_state.combined_data.empty:
+    if display_data is not None and not display_data.empty:
         # Define the column order with specified columns first
         ordered_columns = [
             'Name',
@@ -40,7 +59,7 @@ with tabs[0]:
         ]
         
         # Get the actual columns from the dataframe 
-        existing_columns = list(st.session_state.combined_data.columns)
+        existing_columns = list(display_data.columns)
         
         # Keep only columns that exist in the actual dataframe
         ordered_columns = [col for col in ordered_columns if col in existing_columns]
@@ -50,17 +69,17 @@ with tabs[0]:
         final_column_order = ordered_columns + remaining_columns
         
         # Reorder the dataframe columns
-        reordered_df = st.session_state.combined_data[final_column_order].copy()
+        reordered_df = display_data[final_column_order].copy()
         
         # Display the reordered dataframe
         st.dataframe(reordered_df, use_container_width=True)
         
-        # Export combined data
-        csv_combined = reordered_df.to_csv(index=False)
+        # Export data
+        csv_data = reordered_df.to_csv(index=False)
         st.download_button(
-            label="Download Combined Data",
-            data=csv_combined,
-            file_name="combined_investment_data.csv",
+            label=f"Download {data_status}",
+            data=csv_data,
+            file_name="investment_data.csv",
             mime="text/csv",
         )
     else:
@@ -90,9 +109,10 @@ with tabs[1]:
 with tabs[2]:
     st.header("Risk-Return Analysis")
     
-    # Create risk-return scatter plot
-    if st.session_state.combined_data is not None and not st.session_state.combined_data.empty:
-        risk_return_fig = create_risk_return_scatter(st.session_state.combined_data)
+    # Create risk-return scatter plot using the same data source as the main view
+    if display_data is not None and not display_data.empty:
+        st.subheader(f"Risk-Return Analysis: {data_status}")
+        risk_return_fig = create_risk_return_scatter(display_data)
         st.plotly_chart(risk_return_fig, use_container_width=True)
     else:
         st.info("No data available for risk-return analysis")

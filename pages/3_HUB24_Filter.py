@@ -130,18 +130,18 @@ if hub24_pdf is not None:
                     else:
                         st.success(f"Found {len(hub24_filtered)} investments available on HUB24 platform.")
 
-# Display results section only after the upload section
+# Provide guidance to the user after filtering
 st.markdown("---")
-st.header("HUB24 Filtered Results")
-
-# Display HUB24 filtered investments if available
 if st.session_state.hub24_filtered is not None:
-    # Check if filtered list is empty
     if st.session_state.hub24_filtered.empty:
         st.warning("No investments in your list are available on the HUB24 platform based on the uploaded PDF.")
     else:
-        # Define the column order with specified columns first
+        st.success(f"Your data has been filtered to show only the {len(st.session_state.hub24_filtered)} investments available on the HUB24 platform.")
+        st.info("Go to the **Data Analysis** page to view the filtered results and performance metrics.")
+        
+        # Export functionality is still useful to keep
         if 'APIR Code' in st.session_state.hub24_filtered.columns:
+            # Define the column order with specified columns first
             ordered_columns = [
                 'Name',
                 'APIR Code',
@@ -165,11 +165,8 @@ if st.session_state.hub24_filtered is not None:
             remaining_columns = [col for col in existing_columns if col not in ordered_columns]
             final_column_order = ordered_columns + remaining_columns
             
-            # Reorder the dataframe columns
+            # Reorder the dataframe columns for export
             reordered_df = st.session_state.hub24_filtered[final_column_order].copy()
-            
-            # Display the reordered dataframe
-            st.dataframe(reordered_df, use_container_width=True)
             
             # Export HUB24 filtered investments
             csv_hub24 = reordered_df.to_csv(index=False)
@@ -179,13 +176,3 @@ if st.session_state.hub24_filtered is not None:
                 file_name="hub24_available_investments.csv",
                 mime="text/csv",
             )
-else:
-    st.info("Upload a HUB24 PDF document and click 'Extract APIR Codes', then 'Filter by HUB24 Options' to see results.")
-
-# Visualization section
-if st.session_state.hub24_filtered is not None and not st.session_state.hub24_filtered.empty:
-    st.header("HUB24 Options Performance")
-    
-    # Create risk-return scatter plot for HUB24 options
-    risk_return_fig = create_risk_return_scatter(st.session_state.hub24_filtered)
-    st.plotly_chart(risk_return_fig, use_container_width=True)
