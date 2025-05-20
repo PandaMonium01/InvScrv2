@@ -79,22 +79,16 @@ st.download_button(
     mime="text/csv",
 )
 
-# CSV Data Import section with simple approach
-st.markdown("### CSV Data Import")
-st.write("Upload your investment data CSV files. The application will process and analyze the data.")
+# Simple CSV Data Import
+st.header("Investment Data Import")
+st.write("Upload your investment data CSV files for analysis.")
 
-# Try a simpler file uploader implementation
-try:
-    # File uploader for multiple files
-    uploaded_files = st.file_uploader(
-        "Upload CSV Files", 
-        type="csv", 
-        accept_multiple_files=True,
-        help="Upload one or more CSV files containing investment data."
-    )
-except Exception as e:
-    st.error(f"Error with file uploader: {str(e)}")
-    uploaded_files = None
+# Basic file uploader - simplest possible implementation
+uploaded_files = st.file_uploader(
+    "Upload CSV Files", 
+    type="csv", 
+    accept_multiple_files=True
+)
 
 # Check for previously uploaded data
 if st.session_state['combined_data'] is not None and not uploaded_files:
