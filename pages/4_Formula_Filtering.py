@@ -57,33 +57,80 @@ col1, col2 = st.columns(2)
 with col1:
     # APL filter button for Morningstar Rating >= 3
     if st.button("APL Filter (Morningstar Rating ≥ 3)", use_container_width=True):
-        apl_formula = "`Morningstar Rating` >= 3"
-        # Store the formula for display
-        st.session_state.formula = apl_formula
+        # Use data that might already have been filtered by HUB24
+        source_data = st.session_state.combined_data if st.session_state.hub24_filtered is None else st.session_state.hub24_filtered
         
-        with st.spinner("Applying APL filter..."):
-            try:
-                st.session_state.filtered_selection = apply_formula(
-                    st.session_state.combined_data if st.session_state.hub24_filtered is None else st.session_state.hub24_filtered, 
-                    apl_formula
-                )
-                if st.session_state.filtered_selection.empty:
-                    st.warning("No investments match the APL filter criteria.")
-                else:
-                    st.success(f"Found {len(st.session_state.filtered_selection)} investments with Morningstar Rating ≥ 3.")
-            except Exception as e:
-                st.error(f"Error applying APL filter: {str(e)}")
+        # Check if column exists
+        if 'Morningstar Rating' not in source_data.columns:
+            st.error("Morningstar Rating column not found in the data")
+        else:
+            with st.spinner("Applying APL filter..."):
+                try:
+                    # Convert Morningstar Rating to numeric (handle potential non-numeric values)
+                    numeric_ratings = pd.to_numeric(source_data['Morningstar Rating'], errors='coerce')
+                    
+                    # Filter based on the numeric ratings
+                    filtered_data = source_data[numeric_ratings >= 3]
+                    
+                    # Update the filtered selection
+                    st.session_state.filtered_selection = filtered_data
+                    
+                    if filtered_data.empty:
+                        st.warning("No investments match the APL filter criteria (Morningstar Rating ≥ 3).")
+                    else:
+                        st.success(f"Found {len(filtered_data)} investments with Morningstar Rating ≥ 3.")
+                except Exception as e:
+                    st.error(f"Error applying APL filter: {str(e)}")
+                    st.error("Debug info: Data types - " + str(source_data['Morningstar Rating'].dtypes))
 
 with col2:
-    # Morningstar Category selector
+    # Morningstar Category selector with checkboxes
     if 'Morningstar Category' in st.session_state.combined_data.columns:
+        st.write("**Select Morningstar Categories**")
+        
         available_categories = sorted(st.session_state.combined_data['Morningstar Category'].dropna().unique().tolist())
-        st.session_state.selected_categories = st.multiselect(
-            "Select Morningstar Categories",
-            options=available_categories,
-            default=st.session_state.selected_categories,
-            help="Filter investments to include only these Morningstar Categories."
-        )
+        
+        # Initialize selected_categories if not already in session_state
+        if 'selected_categories' not in st.session_state:
+            st.session_state.selected_categories = []
+        
+        # Create a container with a max height for scrollable checkboxes
+        category_container = st.container()
+        
+        # Make it scrollable if there are many categories
+        with category_container:
+            # Use columns to display checkboxes in a more compact way
+            # Calculate how many categories we have and create 2 columns
+            col1, col2 = st.columns(2)
+            half_point = len(available_categories) // 2
+            
+            # First column of checkboxes
+            with col1:
+                for i, category in enumerate(available_categories[:half_point]):
+                    # Check if this category is already selected
+                    is_selected = category in st.session_state.selected_categories
+                    # Create checkbox with unique key
+                    if st.checkbox(category, value=is_selected, key=f"cat_{i}"):
+                        if category not in st.session_state.selected_categories:
+                            st.session_state.selected_categories.append(category)
+                    elif category in st.session_state.selected_categories:
+                        st.session_state.selected_categories.remove(category)
+            
+            # Second column of checkboxes
+            with col2:
+                for i, category in enumerate(available_categories[half_point:]):
+                    # Use a different offset for the keys in the second column
+                    i += half_point
+                    # Check if this category is already selected
+                    is_selected = category in st.session_state.selected_categories
+                    # Create checkbox with unique key
+                    if st.checkbox(category, value=is_selected, key=f"cat_{i}"):
+                        if category not in st.session_state.selected_categories:
+                            st.session_state.selected_categories.append(category)
+                    elif category in st.session_state.selected_categories:
+                        st.session_state.selected_categories.remove(category)
+        
+        st.write(f"Selected: {len(st.session_state.selected_categories)} categories")
         
         if st.button("Apply Category Filter", use_container_width=True):
             if not st.session_state.selected_categories:
