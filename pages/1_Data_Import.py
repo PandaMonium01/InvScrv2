@@ -79,16 +79,42 @@ st.download_button(
     mime="text/csv",
 )
 
-# Simple CSV Data Import
+# CSV Data Import 
 st.header("Investment Data Import")
 st.write("Upload your investment data CSV files for analysis.")
 
-# Basic file uploader - simplest possible implementation
-uploaded_files = st.file_uploader(
-    "Upload CSV Files", 
-    type="csv", 
-    accept_multiple_files=True
+# Try yet another approach for file upload
+if 'temp_uploaded_files' not in st.session_state:
+    st.session_state['temp_uploaded_files'] = []
+
+# Single file uploader with a unique key
+uploaded_file = st.file_uploader(
+    "Upload a CSV file (one at a time)", 
+    type="csv",
+    key="csv_file"
 )
+
+# Store uploaded file in session state
+if uploaded_file is not None:
+    # Check if this file is already in our list (by name)
+    file_names = [f.name for f in st.session_state['temp_uploaded_files']]
+    if uploaded_file.name not in file_names:
+        st.session_state['temp_uploaded_files'].append(uploaded_file)
+        st.success(f"Added {uploaded_file.name} to processing queue")
+
+# Display currently uploaded files
+if st.session_state['temp_uploaded_files']:
+    st.write("Files ready for processing:")
+    for i, file in enumerate(st.session_state['temp_uploaded_files']):
+        st.text(f"{i+1}. {file.name}")
+
+    # Add a button to clear the list
+    if st.button("Clear file list"):
+        st.session_state['temp_uploaded_files'] = []
+        st.rerun()
+
+# Use the temp uploaded files as our uploaded_files
+uploaded_files = st.session_state['temp_uploaded_files']
 
 # Check for previously uploaded data
 if st.session_state['combined_data'] is not None and not uploaded_files:
@@ -159,7 +185,7 @@ if uploaded_files:
                 st.info("Navigate to the 'Data Analysis' page to view the imported data.")
                 
                 # Force session state to persist
-                st.experimental_set_query_params(
+                st.query_params.set_query_params(
                     data_loaded=True
                 )
                 
