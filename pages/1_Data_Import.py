@@ -79,17 +79,44 @@ st.download_button(
     mime="text/csv",
 )
 
-# File uploader for real data
+# CSV Data Import section
 st.markdown("### CSV Data Import")
 st.write("Upload your investment data CSV files. The application will process and analyze the data.")
 
-# File uploader for multiple files
-uploaded_files = st.file_uploader(
-    "Upload CSV Files", 
-    type="csv", 
-    accept_multiple_files=True,
-    help="Upload one or more CSV files containing investment data."
+# Create two methods for data upload to handle file permissions issues
+upload_method = st.radio(
+    "Select upload method:",
+    ["Upload CSV files", "Paste CSV content"],
+    help="Choose how you want to provide your investment data"
 )
+
+if upload_method == "Upload CSV files":
+    # File uploader for multiple files
+    uploaded_files = st.file_uploader(
+        "Upload CSV Files", 
+        type="csv", 
+        accept_multiple_files=True,
+        help="Upload one or more CSV files containing investment data."
+    )
+else:
+    # Text area for pasting CSV content
+    st.write("Paste your CSV data below:")
+    csv_content = st.text_area(
+        "CSV Content",
+        height=200,
+        help="Paste the content of your CSV file here. Include headers in the first row."
+    )
+    
+    # Convert pasted content to file-like object when provided
+    uploaded_files = None
+    if csv_content:
+        try:
+            import io
+            # Create a file-like object from the pasted content
+            uploaded_files = [io.StringIO(csv_content)]
+            st.success("CSV content ready for processing")
+        except Exception as e:
+            st.error(f"Error parsing CSV content: {str(e)}")
 
 # Check for previously uploaded data
 if st.session_state['combined_data'] is not None and not uploaded_files:
