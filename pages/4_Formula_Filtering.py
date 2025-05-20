@@ -266,59 +266,71 @@ with filter_tabs[2]:
                 # Calculate additional metrics for strategy implementation
                 enhanced_data = calculate_performance_metrics(source_data)
                 
-                # Define strategy formulas
-                formula = ""
+                # Initialize filtered_data as empty
+                filtered_data = pd.DataFrame()
+                
+                # Define and apply strategy logic
                 if strategy == "Balanced Portfolio":
+                    # Use formula engine for Balanced Portfolio
                     formula = "(`3 Years Annualised (%)` > 5) & (`Investment Management Fee(%)` < 1.0) & (`3 Year Standard Deviation` < 15)"
+                    filtered_data = apply_formula(enhanced_data, formula)
+                
                 elif strategy == "High Growth":
                     # Top 25% of returns
-                    return_threshold = np.percentile(enhanced_data['3 Years Annualised (%)'].dropna(), 75)
-                    mask = enhanced_data['3 Years Annualised (%)'] >= return_threshold
-                    filtered_data = enhanced_data[mask].copy()
+                    if '3 Years Annualised (%)' in enhanced_data.columns:
+                        return_threshold = np.percentile(enhanced_data['3 Years Annualised (%)'].dropna(), 75)
+                        mask = enhanced_data['3 Years Annualised (%)'] >= return_threshold
+                        filtered_data = enhanced_data[mask].copy()
+                
                 elif strategy == "Low Cost":
                     # Bottom 25% in expense ratio
-                    expense_threshold = np.percentile(enhanced_data['Investment Management Fee(%)'].dropna(), 25)
-                    mask = enhanced_data['Investment Management Fee(%)'] <= expense_threshold
-                    filtered_data = enhanced_data[mask].copy()
+                    if 'Investment Management Fee(%)' in enhanced_data.columns:
+                        expense_threshold = np.percentile(enhanced_data['Investment Management Fee(%)'].dropna(), 25)
+                        mask = enhanced_data['Investment Management Fee(%)'] <= expense_threshold
+                        filtered_data = enhanced_data[mask].copy()
+                
                 elif strategy == "Income Focus":
                     # Focus on Fixed Income categories with good risk-adjusted returns
-                    mask = enhanced_data['Morningstar Category'].str.contains('Fixed Income|Bond|Income', case=False, na=False)
-                    mask = mask & (enhanced_data['3 Year Sharpe Ratio'] > enhanced_data['3 Year Sharpe Ratio'].median())
-                    filtered_data = enhanced_data[mask].copy()
+                    if 'Morningstar Category' in enhanced_data.columns and '3 Year Sharpe Ratio' in enhanced_data.columns:
+                        mask = enhanced_data['Morningstar Category'].str.contains('Fixed Income|Bond|Income', case=False, na=False)
+                        mask = mask & (enhanced_data['3 Year Sharpe Ratio'] > enhanced_data['3 Year Sharpe Ratio'].median())
+                        filtered_data = enhanced_data[mask].copy()
+                
                 elif strategy == "Conservative":
                     # Lower risk, lower beta
-                    risk_threshold = np.percentile(enhanced_data['3 Year Standard Deviation'].dropna(), 30)
-                    mask = (enhanced_data['3 Year Standard Deviation'] <= risk_threshold)
-                    mask = mask & (enhanced_data['3 Year Beta'] < 0.8)
-                    filtered_data = enhanced_data[mask].copy()
+                    if '3 Year Standard Deviation' in enhanced_data.columns and '3 Year Beta' in enhanced_data.columns:
+                        risk_threshold = np.percentile(enhanced_data['3 Year Standard Deviation'].dropna(), 30)
+                        mask = (enhanced_data['3 Year Standard Deviation'] <= risk_threshold)
+                        mask = mask & (enhanced_data['3 Year Beta'] < 0.8)
+                        filtered_data = enhanced_data[mask].copy()
+                
                 elif strategy == "Quality Value":
                     # Strong Sharpe ratio, moderate fees
-                    sharpe_threshold = np.percentile(enhanced_data['3 Year Sharpe Ratio'].dropna(), 70)
-                    expense_threshold = np.percentile(enhanced_data['Investment Management Fee(%)'].dropna(), 60)
-                    mask = (enhanced_data['3 Year Sharpe Ratio'] >= sharpe_threshold)
-                    mask = mask & (enhanced_data['Investment Management Fee(%)'] <= expense_threshold)
-                    filtered_data = enhanced_data[mask].copy()
+                    if '3 Year Sharpe Ratio' in enhanced_data.columns and 'Investment Management Fee(%)' in enhanced_data.columns:
+                        sharpe_threshold = np.percentile(enhanced_data['3 Year Sharpe Ratio'].dropna(), 70)
+                        expense_threshold = np.percentile(enhanced_data['Investment Management Fee(%)'].dropna(), 60)
+                        mask = (enhanced_data['3 Year Sharpe Ratio'] >= sharpe_threshold)
+                        mask = mask & (enhanced_data['Investment Management Fee(%)'] <= expense_threshold)
+                        filtered_data = enhanced_data[mask].copy()
+                
                 elif strategy == "Category Leaders":
                     # For Category Leaders, use a special approach to get top performers in each category
-                    result = []
-                    for category, group in enhanced_data.groupby('Morningstar Category'):
-                        if len(group) > 0:
-                            # Select top 20% in each category by returns
-                            threshold = np.percentile(group['3 Years Annualised (%)'].dropna(), 80)
-                            top_in_category = group[
-                                (group['3 Years Annualised (%)'] >= threshold) & 
-                                (group['3 Year Sharpe Ratio'] > group['3 Year Sharpe Ratio'].median())
-                            ]
-                            result.append(top_in_category)
-                    
-                    if result:
-                        filtered_data = pd.concat(result)
-                    else:
-                        filtered_data = pd.DataFrame()
-                
-                # Only use formula engine for Balanced Portfolio
-                if strategy == "Balanced Portfolio":
-                    filtered_data = apply_formula(enhanced_data, formula)
+                    if 'Morningstar Category' in enhanced_data.columns and '3 Years Annualised (%)' in enhanced_data.columns:
+                        result = []
+                        for category, group in enhanced_data.groupby('Morningstar Category'):
+                            if len(group) > 0:
+                                # Select top 20% in each category by returns
+                                threshold = np.percentile(group['3 Years Annualised (%)'].dropna(), 80)
+                                top_in_category = group[
+                                    (group['3 Years Annualised (%)'] >= threshold) & 
+                                    (group['3 Year Sharpe Ratio'] > group['3 Year Sharpe Ratio'].median())
+                                ]
+                                result.append(top_in_category)
+                        
+                        if result:
+                            filtered_data = pd.concat(result)
+                        else:
+                            filtered_data = pd.DataFrame()
                 
                 # Store the filtered results
                 st.session_state['filtered_selection'] = filtered_data
