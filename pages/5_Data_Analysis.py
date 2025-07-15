@@ -126,6 +126,30 @@ with tabs[0]:
                 # If asset class averages aren't available, add empty column
                 selection_df['Category Avg Beta - Fund Beta'] = None
         
+        # Add a new column that calculates category avg 3 Year Sharpe Ratio minus fund's 3 Year Sharpe Ratio
+        if '3 Year Sharpe Ratio' in selection_df.columns and 'Morningstar Category' in selection_df.columns:
+            # Get category averages
+            if st.session_state.asset_class_averages is not None and '3 Year Sharpe Ratio' in st.session_state.asset_class_averages.columns:
+                # Create a dictionary mapping category to average sharpe ratio
+                category_sharpes = st.session_state.asset_class_averages['3 Year Sharpe Ratio'].to_dict()
+                
+                # Function to calculate the difference
+                def calc_sharpe_diff(row):
+                    if pd.isna(row['3 Year Sharpe Ratio']):
+                        return None
+                    
+                    category = row['Morningstar Category']
+                    if category in category_sharpes:
+                        category_avg = category_sharpes[category]
+                        return category_avg - row['3 Year Sharpe Ratio']
+                    return None
+                
+                # Apply the function to create the new column
+                selection_df['Category Avg Sharpe - Fund Sharpe'] = selection_df.apply(calc_sharpe_diff, axis=1)
+            else:
+                # If asset class averages aren't available, add empty column
+                selection_df['Category Avg Sharpe - Fund Sharpe'] = None
+        
         # Define the column order with "Select" first and the new calculation last
         ordered_columns = [
             'Select',
@@ -148,17 +172,19 @@ with tabs[0]:
         ordered_columns = [col for col in ordered_columns if col in existing_columns]
         
         # Add any remaining columns that weren't specified in the order (except the special columns)
-        special_columns = ['Select', 'Category Avg Beta - Fund Beta']
+        special_columns = ['Select', 'Category Avg Beta - Fund Beta', 'Category Avg Sharpe - Fund Sharpe']
         remaining_columns = [col for col in existing_columns 
                              if col not in ordered_columns 
                              and col not in special_columns]
         
-        # Create the final column order with the Beta difference at the end
+        # Create the final column order with the calculated columns at the end
         final_column_order = ordered_columns + remaining_columns
         
-        # Add the Beta difference at the very end if it exists
+        # Add the calculated columns at the very end if they exist
         if 'Category Avg Beta - Fund Beta' in existing_columns:
             final_column_order.append('Category Avg Beta - Fund Beta')
+        if 'Category Avg Sharpe - Fund Sharpe' in existing_columns:
+            final_column_order.append('Category Avg Sharpe - Fund Sharpe')
         
         # Reorder the dataframe columns
         reordered_df = selection_df[final_column_order].copy()
