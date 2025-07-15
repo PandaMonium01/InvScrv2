@@ -141,14 +141,14 @@ with tabs[0]:
                     category = row['Morningstar Category']
                     if category in category_sharpes:
                         category_avg = category_sharpes[category]
-                        return category_avg - row['3 Year Sharpe Ratio']
+                        return row['3 Year Sharpe Ratio'] - category_avg
                     return None
                 
                 # Apply the function to create the new column
-                selection_df['Category Avg Sharpe - Fund Sharpe'] = selection_df.apply(calc_sharpe_diff, axis=1)
+                selection_df['Fund Sharpe - Category Avg Sharpe'] = selection_df.apply(calc_sharpe_diff, axis=1)
             else:
                 # If asset class averages aren't available, add empty column
-                selection_df['Category Avg Sharpe - Fund Sharpe'] = None
+                selection_df['Fund Sharpe - Category Avg Sharpe'] = None
         
         # Add a new column that calculates category avg 3 Year Standard Deviation minus fund's 3 Year Standard Deviation
         if '3 Year Standard Deviation' in selection_df.columns and 'Morningstar Category' in selection_df.columns:
@@ -165,14 +165,14 @@ with tabs[0]:
                     category = row['Morningstar Category']
                     if category in category_stdevs:
                         category_avg = category_stdevs[category]
-                        return category_avg - row['3 Year Standard Deviation']
+                        return row['3 Year Standard Deviation'] - category_avg
                     return None
                 
                 # Apply the function to create the new column
-                selection_df['Category Avg StdDev - Fund StdDev'] = selection_df.apply(calc_stdev_diff, axis=1)
+                selection_df['Fund StdDev - Category Avg StdDev'] = selection_df.apply(calc_stdev_diff, axis=1)
             else:
                 # If asset class averages aren't available, add empty column
-                selection_df['Category Avg StdDev - Fund StdDev'] = None
+                selection_df['Fund StdDev - Category Avg StdDev'] = None
         
         # Define the column order with "Select" first and the new calculation last
         ordered_columns = [
@@ -196,7 +196,7 @@ with tabs[0]:
         ordered_columns = [col for col in ordered_columns if col in existing_columns]
         
         # Add any remaining columns that weren't specified in the order (except the special columns)
-        special_columns = ['Select', 'Category Avg Beta - Fund Beta', 'Category Avg Sharpe - Fund Sharpe', 'Category Avg StdDev - Fund StdDev']
+        special_columns = ['Select', 'Category Avg Beta - Fund Beta', 'Fund Sharpe - Category Avg Sharpe', 'Fund StdDev - Category Avg StdDev']
         remaining_columns = [col for col in existing_columns 
                              if col not in ordered_columns 
                              and col not in special_columns]
@@ -207,10 +207,10 @@ with tabs[0]:
         # Add the calculated columns at the very end if they exist
         if 'Category Avg Beta - Fund Beta' in existing_columns:
             final_column_order.append('Category Avg Beta - Fund Beta')
-        if 'Category Avg Sharpe - Fund Sharpe' in existing_columns:
-            final_column_order.append('Category Avg Sharpe - Fund Sharpe')
-        if 'Category Avg StdDev - Fund StdDev' in existing_columns:
-            final_column_order.append('Category Avg StdDev - Fund StdDev')
+        if 'Fund Sharpe - Category Avg Sharpe' in existing_columns:
+            final_column_order.append('Fund Sharpe - Category Avg Sharpe')
+        if 'Fund StdDev - Category Avg StdDev' in existing_columns:
+            final_column_order.append('Fund StdDev - Category Avg StdDev')
         
         # Reorder the dataframe columns
         reordered_df = selection_df[final_column_order].copy()
