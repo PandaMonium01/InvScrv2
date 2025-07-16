@@ -606,7 +606,7 @@ if portfolio_df is not None:
                         allocation_comparison.append([asset_class, f"{portfolio_pct:.1f}%", f"{target_pct:.1f}%", f"{variance:+.1f}%"])
                     
                     allocation_df = pd.DataFrame(allocation_comparison, 
-                                               columns=['Asset Class', 'Portfolio %', 'Target %', 'Variance'] + [''] * (len(detailed_with_allocations.columns) - 4))
+                                               columns=['Asset Class', 'Portfolio %', 'Target %', 'Variance'])
                     
                     portfolio_sheet_data.append(allocation_df)
                     
