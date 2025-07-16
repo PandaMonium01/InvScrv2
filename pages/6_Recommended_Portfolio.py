@@ -104,7 +104,7 @@ if portfolio_df is not None:
     
     # Create a table-like layout with individual input fields
     # Header row
-    col1, col2, col3, col4, col5 = st.columns([1, 3, 2, 2, 1])
+    col1, col2, col3, col4, col5, col6 = st.columns([1, 3, 2, 2, 2, 1])
     with col1:
         st.write("**Allocation %**")
     with col2:
@@ -114,11 +114,24 @@ if portfolio_df is not None:
     with col4:
         st.write("**Category**")
     with col5:
+        st.write("**Asset Class**")
+    with col6:
         st.write("**Action**")
     
     # Data rows with individual input fields
+    # Asset class options
+    asset_classes = [
+        'Cash', 
+        'Australian Fixed Interest', 
+        'International Fixed Interest', 
+        'Australian Equities', 
+        'International Equities', 
+        'Property', 
+        'Alternatives'
+    ]
+    
     for idx, (apir, fund) in enumerate(st.session_state.recommended_portfolio.items()):
-        col1, col2, col3, col4, col5 = st.columns([1, 3, 2, 2, 1])
+        col1, col2, col3, col4, col5, col6 = st.columns([1, 3, 2, 2, 2, 1])
         
         with col1:
             # Get current allocation
@@ -154,6 +167,18 @@ if portfolio_df is not None:
             st.write(fund['Morningstar Category'])
         
         with col5:
+            # Asset class dropdown
+            current_mapping = st.session_state.asset_class_mapping.get(apir, asset_classes[0])
+            selected_asset_class = st.selectbox(
+                f"Asset class for {fund['Name']}",
+                asset_classes,
+                index=asset_classes.index(current_mapping) if current_mapping in asset_classes else 0,
+                key=f"asset_class_{apir}",
+                label_visibility="collapsed"
+            )
+            st.session_state.asset_class_mapping[apir] = selected_asset_class
+        
+        with col6:
             # Add remove button for each fund
             if st.button("Remove", key=f"remove_{apir}", use_container_width=True):
                 remove_from_portfolio(apir)
@@ -212,73 +237,27 @@ if portfolio_df is not None:
                     'Alternatives'
                 ]
                 
-                # Create mapping interface
-                st.subheader("Asset Class Mapping")
-                st.write("Map each fund's Morningstar Category to an asset class:")
-                
-                # Create columns for the mapping table
-                map_cols = st.columns([3, 2, 2, 1])
-                with map_cols[0]:
-                    st.write("**Fund Name**")
-                with map_cols[1]:
-                    st.write("**Morningstar Category**")
-                with map_cols[2]:
-                    st.write("**Asset Class**")
-                with map_cols[3]:
-                    st.write("**Allocation**")
-                
-                st.markdown("---")
-                
                 # Calculate portfolio asset class allocations
                 asset_class_allocations = {ac: 0.0 for ac in asset_classes}
                 total_allocated = 0.0
                 
                 for apir in portfolio_apirs:
-                    fund_data = detailed_portfolio[detailed_portfolio['APIR Code'] == apir]
-                    if not fund_data.empty:
-                        fund_row = fund_data.iloc[0]
-                        fund_name = fund_row.get('Name', 'Unknown')
-                        morningstar_category = fund_row.get('Morningstar Category', 'Unknown')
-                        
-                        # Get allocation percentage
-                        allocation = st.session_state.portfolio_allocations.get(apir, "")
-                        allocation_pct = 0.0
-                        if allocation and allocation != "":
-                            try:
-                                allocation_pct = float(allocation)
-                                total_allocated += allocation_pct
-                            except (ValueError, TypeError):
-                                allocation_pct = 0.0
-                        
-                        # Create mapping row
-                        map_row_cols = st.columns([3, 2, 2, 1])
-                        
-                        with map_row_cols[0]:
-                            st.write(fund_name[:50] + "..." if len(fund_name) > 50 else fund_name)
-                        
-                        with map_row_cols[1]:
-                            st.write(morningstar_category)
-                        
-                        with map_row_cols[2]:
-                            # Asset class dropdown
-                            current_mapping = st.session_state.asset_class_mapping.get(apir, asset_classes[0])
-                            selected_asset_class = st.selectbox(
-                                f"Asset class for {apir}",
-                                asset_classes,
-                                index=asset_classes.index(current_mapping) if current_mapping in asset_classes else 0,
-                                key=f"asset_class_{apir}",
-                                label_visibility="collapsed"
-                            )
-                            st.session_state.asset_class_mapping[apir] = selected_asset_class
-                        
-                        with map_row_cols[3]:
-                            st.write(f"{allocation_pct:.1f}%")
-                        
-                        # Add to asset class total
-                        if selected_asset_class in asset_class_allocations:
-                            asset_class_allocations[selected_asset_class] += allocation_pct
-                
-                st.markdown("---")
+                    # Get allocation percentage
+                    allocation = st.session_state.portfolio_allocations.get(apir, "")
+                    allocation_pct = 0.0
+                    if allocation and allocation != "":
+                        try:
+                            allocation_pct = float(allocation)
+                            total_allocated += allocation_pct
+                        except (ValueError, TypeError):
+                            allocation_pct = 0.0
+                    
+                    # Get selected asset class from mapping
+                    selected_asset_class = st.session_state.asset_class_mapping.get(apir, asset_classes[0])
+                    
+                    # Add to asset class total
+                    if selected_asset_class in asset_class_allocations:
+                        asset_class_allocations[selected_asset_class] += allocation_pct
                 
                 # Portfolio vs Target Allocation Analysis
                 st.subheader("Portfolio vs Target Allocation")
@@ -353,9 +332,9 @@ if portfolio_df is not None:
                         st.write(f"{target_pct:.1f}%")
                     with comp_row_cols[3]:
                         if variance > 0:
-                            st.write(f"+{variance:.1f}%", help="Over-allocated")
+                            st.write(f"+{variance:.1f}%")
                         elif variance < 0:
-                            st.write(f"{variance:.1f}%", help="Under-allocated")
+                            st.write(f"{variance:.1f}%")
                         else:
                             st.write("0.0%")
                 
