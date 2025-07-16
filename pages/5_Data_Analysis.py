@@ -198,6 +198,27 @@ with tabs[0]:
             else:
                 # If asset class averages aren't available, add empty column
                 selection_df['Fund StdDev - Category Avg StdDev'] = None
+
+        # Add a new column with the composite formula: ((Fund StdDev - Category Avg StdDev) / 10) + (Fund Sharpe - Category Avg Sharpe) + (Category Avg Beta - Fund Beta)
+        if all(col in selection_df.columns for col in ['Fund StdDev - Category Avg StdDev', 'Fund Sharpe - Category Avg Sharpe', 'Category Avg Beta - Fund Beta']):
+            def calc_composite_score(row):
+                # Check if all required values are present (not None/NaN)
+                stdev_diff = row['Fund StdDev - Category Avg StdDev']
+                sharpe_diff = row['Fund Sharpe - Category Avg Sharpe']
+                beta_diff = row['Category Avg Beta - Fund Beta']
+                
+                if pd.isna(stdev_diff) or pd.isna(sharpe_diff) or pd.isna(beta_diff):
+                    return None
+                
+                # Apply the formula: ((Fund StdDev - Category Avg StdDev) / 10) + (Fund Sharpe - Category Avg Sharpe) + (Category Avg Beta - Fund Beta)
+                composite_score = (stdev_diff / 10) + sharpe_diff + beta_diff
+                return composite_score
+            
+            # Apply the function to create the new column
+            selection_df['Composite Score'] = selection_df.apply(calc_composite_score, axis=1)
+        else:
+            # If required columns aren't available, add empty column
+            selection_df['Composite Score'] = None
         
         # Define the column order with "Select" first and the new calculation last
         ordered_columns = [
@@ -221,7 +242,7 @@ with tabs[0]:
         ordered_columns = [col for col in ordered_columns if col in existing_columns]
         
         # Add any remaining columns that weren't specified in the order (except the special columns)
-        special_columns = ['Select', 'Category Avg Beta - Fund Beta', 'Fund Sharpe - Category Avg Sharpe', 'Fund StdDev - Category Avg StdDev']
+        special_columns = ['Select', 'Category Avg Beta - Fund Beta', 'Fund Sharpe - Category Avg Sharpe', 'Fund StdDev - Category Avg StdDev', 'Composite Score']
         remaining_columns = [col for col in existing_columns 
                              if col not in ordered_columns 
                              and col not in special_columns]
@@ -236,6 +257,8 @@ with tabs[0]:
             final_column_order.append('Fund Sharpe - Category Avg Sharpe')
         if 'Fund StdDev - Category Avg StdDev' in existing_columns:
             final_column_order.append('Fund StdDev - Category Avg StdDev')
+        if 'Composite Score' in existing_columns:
+            final_column_order.append('Composite Score')
         
         # Reorder the dataframe columns
         reordered_df = selection_df[final_column_order].copy()
