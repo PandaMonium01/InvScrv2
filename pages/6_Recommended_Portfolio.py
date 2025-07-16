@@ -21,6 +21,10 @@ if 'portfolio_allocations' not in st.session_state:
 if 'combined_data' not in st.session_state:
     st.session_state.combined_data = None
 
+# Initialize asset class mapping if needed
+if 'asset_class_mapping' not in st.session_state:
+    st.session_state.asset_class_mapping = {}
+
 st.title("Recommended Portfolio")
 
 # Function to convert the portfolio dictionary to a DataFrame
@@ -210,10 +214,6 @@ if portfolio_df is not None:
     
     # Portfolio Asset Class Allocation Analysis
     st.header("Portfolio Asset Class Allocation")
-    
-    # Initialize asset class mapping in session state if needed
-    if 'asset_class_mapping' not in st.session_state:
-        st.session_state.asset_class_mapping = {}
     
     if not st.session_state.recommended_portfolio:
         st.info("Add funds to your portfolio to see asset class allocation analysis")
