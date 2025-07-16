@@ -214,13 +214,7 @@ with tabs[0]:
                 # Note: We negate the standard deviation difference
                 composite_score = (-(stdev_diff) / 10) + sharpe_diff + beta_diff
                 
-                # Debug for FSF1240AU and ETL0402AU
-                if row.get('APIR Code') in ['FSF1240AU', 'ETL0402AU']:
-                    print(f"DEBUG - {row.get('APIR Code')} Composite Score:")
-                    print(f"  Fund StdDev - Category Avg StdDev: {stdev_diff}")
-                    print(f"  Fund Sharpe - Category Avg Sharpe: {sharpe_diff}")
-                    print(f"  Category Avg Beta - Fund Beta: {beta_diff}")
-                    print(f"  Calculation: (-{stdev_diff} / 10) + {sharpe_diff} + {beta_diff} = {composite_score}")
+
                 
                 return composite_score
             
@@ -443,7 +437,7 @@ with tabs[0]:
             numerical_cols = reordered_df.select_dtypes(include=[np.number]).columns.tolist()
             
             # Remove non-investment data columns if they exist
-            exclude_cols = ['Select']  # Add any other columns to exclude
+            exclude_cols = ['Select', 'Composite Score']  # Add any other columns to exclude
             numerical_cols = [col for col in numerical_cols if col not in exclude_cols]
             
             if numerical_cols:
@@ -455,15 +449,6 @@ with tabs[0]:
                 
                 # Display the table
                 st.dataframe(category_averages, use_container_width=True)
-                
-                # Add count of investments per category
-                st.subheader("Investment Count by Category")
-                category_counts = reordered_df['Morningstar Category'].value_counts().sort_index()
-                count_df = pd.DataFrame({
-                    'Category': category_counts.index,
-                    'Number of Investments': category_counts.values
-                })
-                st.dataframe(count_df, use_container_width=True)
                 
                 # Download category averages
                 category_csv = category_averages.to_csv()
