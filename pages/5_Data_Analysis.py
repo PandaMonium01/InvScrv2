@@ -120,27 +120,7 @@ with tabs[0]:
                 subset_for_avg = display_data[['Morningstar Category'] + existing_fields].copy()
                 current_data_averages = subset_for_avg.groupby('Morningstar Category').mean(numeric_only=True)
                 
-                # Debug: Show the counts and averages for Equity World Large Blend from filtered data
-                if 'Equity World Large Blend' in current_data_averages.index:
-                    category_data = display_data[display_data['Morningstar Category'] == 'Equity World Large Blend']
-                    
-                    # Count funds with valid 3-year data
-                    beta_count = category_data['3 Year Beta'].notna().sum()
-                    stdev_count = category_data['3 Year Standard Deviation'].notna().sum()
-                    sharpe_count = category_data['3 Year Sharpe Ratio'].notna().sum()
-                    
-                    print(f"DEBUG - Equity World Large Blend (FILTERED DATA):")
-                    print(f"  Total funds: {len(category_data)}")
-                    print(f"  Beta count (valid): {beta_count}")
-                    print(f"  StdDev count (valid): {stdev_count}")
-                    print(f"  Sharpe count (valid): {sharpe_count}")
-                    
-                    if beta_count > 0:
-                        print(f"  Beta average: {current_data_averages.loc['Equity World Large Blend', '3 Year Beta']:.8f}")
-                    if stdev_count > 0:
-                        print(f"  StdDev average: {current_data_averages.loc['Equity World Large Blend', '3 Year Standard Deviation']:.8f}")
-                    if sharpe_count > 0:
-                        print(f"  Sharpe average: {current_data_averages.loc['Equity World Large Blend', '3 Year Sharpe Ratio']:.8f}")
+
 
         # Add a new column that calculates category avg 3 Year Beta minus fund's 3 Year Beta
         if '3 Year Beta' in selection_df.columns and 'Morningstar Category' in selection_df.columns:
