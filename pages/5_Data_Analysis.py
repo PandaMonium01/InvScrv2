@@ -225,8 +225,8 @@ if display_data is not None and not display_data.empty:
     
     # Group by Morningstar Category
     if 'Morningstar Category' in reordered_df.columns:
-        # Get unique categories
-        categories = reordered_df['Morningstar Category'].dropna().unique()
+        # Get unique categories and sort them alphabetically
+        categories = sorted(reordered_df['Morningstar Category'].dropna().unique())
         
         # Create tabs for "All" and individual categories
         category_tabs = ["All Categories"] + list(categories)
