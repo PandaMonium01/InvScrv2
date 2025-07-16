@@ -101,10 +101,10 @@ if portfolio_df is not None:
         current_allocation = st.session_state.portfolio_allocations.get(apir, "")
         
         allocation_data.append({
-            'APIR Code': apir,
+            'Allocation %': current_allocation,
             'Fund Name': fund['Name'],
-            'Category': fund['Morningstar Category'],
-            'Current Allocation': current_allocation
+            'APIR Code': apir,
+            'Category': fund['Morningstar Category']
         })
         
         # Calculate total if allocation is a valid number
@@ -119,32 +119,34 @@ if portfolio_df is not None:
     
     # Display the editable allocation table
     st.write("**Portfolio Allocation Table**")
+    st.write("💡 **Tip:** Use Tab key to move between allocation fields for quick data entry")
+    
     edited_allocation_df = st.data_editor(
         allocation_df,
         column_config={
-            "APIR Code": st.column_config.TextColumn(
-                "APIR Code",
-                width="medium",
-                disabled=True
+            "Allocation %": st.column_config.NumberColumn(
+                "Allocation %",
+                width="small",
+                min_value=0,
+                max_value=100,
+                step=0.1,
+                format="%.1f",
+                help="Enter the percentage allocation for this fund (use Tab to move to next field)"
             ),
             "Fund Name": st.column_config.TextColumn(
                 "Fund Name",
                 width="large",
                 disabled=True
             ),
+            "APIR Code": st.column_config.TextColumn(
+                "APIR Code",
+                width="medium",
+                disabled=True
+            ),
             "Category": st.column_config.TextColumn(
                 "Category",
                 width="medium",
                 disabled=True
-            ),
-            "Current Allocation": st.column_config.NumberColumn(
-                "Allocation %",
-                width="small",
-                min_value=0,
-                max_value=100,
-                step=0.1,
-                format="%.1f%%",
-                help="Enter the percentage allocation for this fund"
             )
         },
         use_container_width=True,
@@ -155,7 +157,7 @@ if portfolio_df is not None:
     # Update session state with edited allocations
     for idx, row in edited_allocation_df.iterrows():
         apir = row['APIR Code']
-        allocation = row['Current Allocation']
+        allocation = row['Allocation %']
         st.session_state.portfolio_allocations[apir] = allocation if pd.notna(allocation) else ""
     
     # Calculate and display total allocation
