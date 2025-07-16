@@ -106,6 +106,7 @@ if portfolio_df is not None:
     # Display the allocation table using custom input fields for better navigation
     st.write("**Portfolio Allocation Table**")
     st.write("💡 **Tip:** Use Tab key to move between allocation fields for quick data entry")
+    st.info("ℹ️ **Asset classes are automatically mapped** from Morningstar categories using the settings in the Assumptions page")
     
     # Create a table-like layout with individual input fields
     # Header row
@@ -172,16 +173,43 @@ if portfolio_df is not None:
             st.write(fund['Morningstar Category'])
         
         with col5:
-            # Asset class dropdown
-            current_mapping = st.session_state.asset_class_mapping.get(apir, asset_classes[0])
-            selected_asset_class = st.selectbox(
-                f"Asset class for {fund['Name']}",
-                asset_classes,
-                index=asset_classes.index(current_mapping) if current_mapping in asset_classes else 0,
-                key=f"asset_class_{apir}",
-                label_visibility="collapsed"
+            # Get asset class from Morningstar category mapping
+            morningstar_category = fund.get('Morningstar Category', '')
+            
+            # Initialize Morningstar category mapping if not present
+            if 'morningstar_asset_class_mapping' not in st.session_state:
+                st.session_state.morningstar_asset_class_mapping = {
+                    'Alternative - Private Equity': 'Alternatives',
+                    'Australia Equity Income': 'Australian Equities',
+                    'Australian Cash': 'Cash',
+                    'Bonds - Australia': 'Australian Fixed Interest',
+                    'Equity Australia Large Blend': 'Australian Equities',
+                    'Equity Australia Large Growth': 'Australian Equities',
+                    'Equity Australia Large Value': 'Australian Equities',
+                    'Equity Australia Mid/Small Growth': 'Australian Equities',
+                    'Equity Australia Real Estate': 'Property',
+                    'Equity Emerging Markets': 'International Equities',
+                    'Equity Region Emerging Markets': 'International Equities',
+                    'Equity Sector Global - Real Estate': 'Property',
+                    'Equity World - Currency Hedged': 'International Equities',
+                    'Equity World Large Blend': 'International Equities',
+                    'Equity World Large Growth': 'International Equities',
+                    'Equity World Large Value': 'International Equities',
+                    'Equity World Mid/Small': 'International Equities',
+                    'Global Bond': 'International Fixed Interest'
+                }
+            
+            # Get mapped asset class
+            mapped_asset_class = st.session_state.morningstar_asset_class_mapping.get(
+                morningstar_category, 'Cash'  # Default to Cash if category not found
             )
-            st.session_state.asset_class_mapping[apir] = selected_asset_class
+            
+            # Display the mapped asset class (read-only)
+            st.write(f"**{mapped_asset_class}**")
+            st.caption("*Auto-mapped*")
+            
+            # Update the asset class mapping in session state for backward compatibility
+            st.session_state.asset_class_mapping[apir] = mapped_asset_class
         
         with col6:
             # Add remove button for each fund
