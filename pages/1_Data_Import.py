@@ -39,46 +39,6 @@ This page allows you to upload your investment data files in CSV format.
 The system will validate, process, and combine the data for analysis.
 """)
 
-# Display information about file format as simple text, not in a box
-st.subheader("Expected CSV Format")
-st.markdown("""
-Please upload a CSV file with the following columns:
-
-- Name of the investment
-- APIR code for the investment
-- Morningstar Category (e.g., Equity Large Cap, Australian Bond, etc.)
-- 3 Years Annualised (%) - 3-year annualized return in percentage
-- Investment Management Fee(%) - Annual management fee in percentage  
-- Equity StyleBox™ - Morningstar's style classification
-- Morningstar Rating - Star rating
-- 3 Year Beta - Beta value over 3 years
-- 3 Year Standard Deviation - Standard deviation over 3 years
-- 3 Year Sharpe Ratio - Sharpe ratio over 3 years
-""")
-    
-# Create an example CSV file for download
-example_data = {
-    'Name': ['Australian Shares Fund', 'Global Bond Fund', 'Small Cap Index Fund', 'Emerging Markets ETF', 'High-Yield Bond Fund'],
-    'APIR Code': ['ABC123', 'DEF456', 'GHI789', 'JKL012', 'MNO345'],
-    'Morningstar Category': ['Equity Large Cap', 'Global Fixed Income', 'Equity Small Cap', 'Equity Emerging Markets', 'Fixed Income High Yield'],
-    '3 Years Annualised (%)': [8.5, 4.2, 9.1, 11.3, 6.5],
-    'Investment Management Fee(%)': [0.75, 0.45, 0.55, 0.95, 0.65],
-    'Equity StyleBox™': ['Large Value', 'N/A', 'Small Growth', 'Mid Blend', 'N/A'],
-    'Morningstar Rating': [5, 4, 3, 4, 3],
-    '3 Year Beta': [1.05, 0.32, 1.22, 1.45, 0.78],
-    '3 Year Standard Deviation': [15.2, 6.1, 22.4, 25.3, 12.5],
-    '3 Year Sharpe Ratio': [0.53, 0.67, 0.41, 0.44, 0.50]
-}
-example_df = pd.DataFrame(example_data)
-csv = example_df.to_csv(index=False)
-
-st.download_button(
-    label="Download Example CSV",
-    data=csv,
-    file_name="example_investment_data.csv",
-    mime="text/csv",
-)
-
 # CSV Data Import 
 st.header("Investment Data Import")
 st.write("Upload your investment data CSV files for analysis.")
@@ -222,3 +182,43 @@ if st.session_state['combined_data'] is not None and not st.session_state['combi
     
     # Display the first 5 rows
     st.dataframe(reordered_df.head(5), use_container_width=True)
+
+# Display information about file format as simple text, not in a box
+st.subheader("Expected CSV Format")
+st.markdown("""
+Please upload a CSV file with the following columns:
+
+- Name of the investment
+- APIR code for the investment
+- Morningstar Category (e.g., Equity Large Cap, Australian Bond, etc.)
+- 3 Years Annualised (%) - 3-year annualized return in percentage
+- Investment Management Fee(%) - Annual management fee in percentage  
+- Equity StyleBox™ - Morningstar's style classification
+- Morningstar Rating - Star rating
+- 3 Year Beta - Beta value over 3 years
+- 3 Year Standard Deviation - Standard deviation over 3 years
+- 3 Year Sharpe Ratio - Sharpe ratio over 3 years
+""")
+    
+# Create an example CSV file for download
+example_data = {
+    'Name': ['Australian Shares Fund', 'Global Bond Fund', 'Small Cap Index Fund', 'Emerging Markets ETF', 'High-Yield Bond Fund'],
+    'APIR Code': ['ABC123', 'DEF456', 'GHI789', 'JKL012', 'MNO345'],
+    'Morningstar Category': ['Equity Large Cap', 'Global Fixed Income', 'Equity Small Cap', 'Equity Emerging Markets', 'Fixed Income High Yield'],
+    '3 Years Annualised (%)': [8.5, 4.2, 9.1, 11.3, 6.5],
+    'Investment Management Fee(%)': [0.75, 0.45, 0.55, 0.95, 0.65],
+    'Equity StyleBox™': ['Large Value', 'N/A', 'Small Growth', 'Mid Blend', 'N/A'],
+    'Morningstar Rating': [5, 4, 3, 4, 3],
+    '3 Year Beta': [1.05, 0.32, 1.22, 1.45, 0.78],
+    '3 Year Standard Deviation': [15.2, 6.1, 22.4, 25.3, 12.5],
+    '3 Year Sharpe Ratio': [0.53, 0.67, 0.41, 0.44, 0.50]
+}
+example_df = pd.DataFrame(example_data)
+csv = example_df.to_csv(index=False)
+
+st.download_button(
+    label="Download Example CSV",
+    data=csv,
+    file_name="example_investment_data.csv",
+    mime="text/csv",
+)
