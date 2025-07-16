@@ -174,9 +174,9 @@ if display_data is not None and not display_data.empty:
         selection_df['Composite Score'] = selection_df.apply(calc_composite_score, axis=1)
     
     # Reorder columns to place key columns first
-    desired_order = ['Select', 'Name', 'APIR Code', 'Morningstar Category', '3 Years Annualised (%)', 
+    desired_order = ['Select', 'Composite Score', 'Name', 'APIR Code', 'Morningstar Category', '3 Years Annualised (%)', 
                     'Investment Management Fee(%)', '3 Year Beta', '3 Year Standard Deviation', 
-                    '3 Year Sharpe Ratio', 'Composite Score']
+                    '3 Year Sharpe Ratio']
     
     # Filter to only include columns that exist in the dataframe
     available_columns = [col for col in desired_order if col in selection_df.columns]
