@@ -45,108 +45,112 @@ with st.expander("Strategic Asset Allocation Table", expanded=True):
     # Display editable table
     st.subheader("Asset Allocation by Risk Profile")
     
-    # Create columns for the table
-    col1, col2, col3, col4, col5, col6, col7, col8 = st.columns(8)
+    # Create a more structured table using HTML-like formatting
+    st.markdown("---")
     
-    with col1:
-        st.write("**Asset Class**")
-        st.write("**Type**")
-    with col2:
-        st.write("**Defensive**")
-        st.write("**(100/0)**")
-    with col3:
-        st.write("**Conservative**")
-        st.write("**(80/20)**")
-    with col4:
-        st.write("**Moderate**")
-        st.write("**(60/40)**")
-    with col5:
-        st.write("**Balanced**")
-        st.write("**(40/60)**")
-    with col6:
-        st.write("**Growth**")
-        st.write("**(20/80)**")
-    with col7:
-        st.write("**High Growth**")
-        st.write("**(0/100)**")
-    with col8:
-        st.write("**Actions**")
-        st.write("")
+    # Header row
+    header_cols = st.columns([2, 1, 1, 1, 1, 1, 1, 1])
+    with header_cols[0]:
+        st.markdown("**Asset Class / Type**")
+    with header_cols[1]:
+        st.markdown("**Defensive**<br>**(100/0)**", unsafe_allow_html=True)
+    with header_cols[2]:
+        st.markdown("**Conservative**<br>**(80/20)**", unsafe_allow_html=True)
+    with header_cols[3]:
+        st.markdown("**Moderate**<br>**(60/40)**", unsafe_allow_html=True)
+    with header_cols[4]:
+        st.markdown("**Balanced**<br>**(40/60)**", unsafe_allow_html=True)
+    with header_cols[5]:
+        st.markdown("**Growth**<br>**(20/80)**", unsafe_allow_html=True)
+    with header_cols[6]:
+        st.markdown("**High Growth**<br>**(0/100)**", unsafe_allow_html=True)
+    with header_cols[7]:
+        st.markdown("**Actions**")
+    
+    st.markdown("---")
     
     # Create input fields for each row
     for i, asset_class in enumerate(allocation_df['Asset Class']):
-        with col1:
-            st.write(f"**{asset_class}**")
-            st.write(f"*{allocation_df.loc[i, 'Type']}*")
+        cols = st.columns([2, 1, 1, 1, 1, 1, 1, 1])
         
-        with col2:
+        with cols[0]:
+            st.markdown(f"**{asset_class}**")
+            st.caption(f"*{allocation_df.loc[i, 'Type']}*")
+        
+        with cols[1]:
             new_defensive = st.number_input(
-                f"def_{i}", 
+                f"Defensive {asset_class}", 
                 value=allocation_df.loc[i, 'Defensive (100/0)'],
                 min_value=0,
                 max_value=100,
                 step=1,
-                label_visibility="collapsed"
+                label_visibility="collapsed",
+                key=f"def_{i}"
             )
             st.session_state.strategic_asset_allocation['Defensive (100/0)'][i] = new_defensive
         
-        with col3:
+        with cols[2]:
             new_conservative = st.number_input(
-                f"con_{i}", 
+                f"Conservative {asset_class}", 
                 value=allocation_df.loc[i, 'Conservative (80/20)'],
                 min_value=0,
                 max_value=100,
                 step=1,
-                label_visibility="collapsed"
+                label_visibility="collapsed",
+                key=f"con_{i}"
             )
             st.session_state.strategic_asset_allocation['Conservative (80/20)'][i] = new_conservative
         
-        with col4:
+        with cols[3]:
             new_moderate = st.number_input(
-                f"mod_{i}", 
+                f"Moderate {asset_class}", 
                 value=allocation_df.loc[i, 'Moderate (60/40)'],
                 min_value=0,
                 max_value=100,
                 step=1,
-                label_visibility="collapsed"
+                label_visibility="collapsed",
+                key=f"mod_{i}"
             )
             st.session_state.strategic_asset_allocation['Moderate (60/40)'][i] = new_moderate
         
-        with col5:
+        with cols[4]:
             new_balanced = st.number_input(
-                f"bal_{i}", 
+                f"Balanced {asset_class}", 
                 value=allocation_df.loc[i, 'Balanced (40/60)'],
                 min_value=0,
                 max_value=100,
                 step=1,
-                label_visibility="collapsed"
+                label_visibility="collapsed",
+                key=f"bal_{i}"
             )
             st.session_state.strategic_asset_allocation['Balanced (40/60)'][i] = new_balanced
         
-        with col6:
+        with cols[5]:
             new_growth = st.number_input(
-                f"gro_{i}", 
+                f"Growth {asset_class}", 
                 value=allocation_df.loc[i, 'Growth (20/80)'],
                 min_value=0,
                 max_value=100,
                 step=1,
-                label_visibility="collapsed"
+                label_visibility="collapsed",
+                key=f"gro_{i}"
             )
             st.session_state.strategic_asset_allocation['Growth (20/80)'][i] = new_growth
         
-        with col7:
+        with cols[6]:
             new_high_growth = st.number_input(
-                f"hg_{i}", 
+                f"High Growth {asset_class}", 
                 value=allocation_df.loc[i, 'High Growth (0/100)'],
                 min_value=0,
                 max_value=100,
                 step=1,
-                label_visibility="collapsed"
+                label_visibility="collapsed",
+                key=f"hg_{i}"
             )
             st.session_state.strategic_asset_allocation['High Growth (0/100)'][i] = new_high_growth
         
-        with col8:
-            if st.button(f"Reset {asset_class}", key=f"reset_{i}"):
+        with cols[7]:
+            if st.button(f"Reset", key=f"reset_{i}"):
                 # Reset to default values
                 defaults = {
                     'Cash': {'Defensive (100/0)': 70, 'Conservative (80/20)': 20, 'Moderate (60/40)': 15, 'Balanced (40/60)': 5, 'Growth (20/80)': 2, 'High Growth (0/100)': 2},
@@ -162,6 +166,9 @@ with st.expander("Strategic Asset Allocation Table", expanded=True):
                     for profile, value in defaults[asset_class].items():
                         st.session_state.strategic_asset_allocation[profile][i] = value
                 st.rerun()
+        
+        # Add spacing between rows
+        st.markdown("")
     
     # Calculate and display totals
     st.subheader("Profile Totals")
