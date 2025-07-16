@@ -181,22 +181,7 @@ def load_and_process_csv(file):
             
             # Convert to numeric, coercing any remaining non-numeric values to NaN
             # This ensures that properly formatted negative numbers (with either minus symbol) are parsed correctly
-            
-            # Debug: Check for ACM6379AU before conversion for 3-year metrics
-            if col in ['3 Year Beta', '3 Year Standard Deviation', '3 Year Sharpe Ratio']:
-                acm_mask = df['APIR Code'] == 'ACM6379AU' if 'APIR Code' in df.columns else False
-                if acm_mask.any():
-                    acm_value = df.loc[acm_mask, col].iloc[0] if acm_mask.any() else 'NOT FOUND'
-                    print(f"DEBUG - ACM6379AU {col} before conversion: '{acm_value}'")
-            
             df[col] = pd.to_numeric(df[col], errors='coerce')
-            
-            # Debug: Check for ACM6379AU after conversion for 3-year metrics
-            if col in ['3 Year Beta', '3 Year Standard Deviation', '3 Year Sharpe Ratio']:
-                acm_mask = df['APIR Code'] == 'ACM6379AU' if 'APIR Code' in df.columns else False
-                if acm_mask.any():
-                    acm_value = df.loc[acm_mask, col].iloc[0] if acm_mask.any() else 'NOT FOUND'
-                    print(f"DEBUG - ACM6379AU {col} after conversion: '{acm_value}'")
         
         # Check for missing values in important columns
         has_missing = df[REQUIRED_COLUMNS].isna().sum().sum() > 0
