@@ -180,15 +180,18 @@ if portfolio_df is not None:
             if 'morningstar_asset_class_mapping' not in st.session_state:
                 st.session_state.morningstar_asset_class_mapping = {
                     'Alternative - Private Equity': 'Alternatives',
+                    'Alternative - Multistrategy': 'Alternatives',
                     'Australia Equity Income': 'Australian Equities',
                     'Australian Cash': 'Cash',
                     'Bonds - Australia': 'Australian Fixed Interest',
+                    'Bonds - Global': 'International Fixed Interest',
                     'Equity Australia Large Blend': 'Australian Equities',
                     'Equity Australia Large Growth': 'Australian Equities',
                     'Equity Australia Large Value': 'Australian Equities',
                     'Equity Australia Mid/Small Growth': 'Australian Equities',
                     'Equity Australia Real Estate': 'Property',
                     'Equity Emerging Markets': 'International Equities',
+                    'Equity Global Real Estate': 'Property',
                     'Equity Region Emerging Markets': 'International Equities',
                     'Equity Sector Global - Real Estate': 'Property',
                     'Equity World - Currency Hedged': 'International Equities',
