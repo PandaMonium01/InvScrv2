@@ -268,7 +268,8 @@ if portfolio_df is not None:
                     "Select target risk profile for comparison:",
                     ['Defensive (100/0)', 'Conservative (80/20)', 'Moderate (60/40)', 'Balanced (40/60)', 'Growth (20/80)', 'High Growth (0/100)'],
                     index=3,  # Default to Balanced
-                    key="target_profile_select"
+                    key="target_profile_select",
+                    help="Select a risk profile to compare your portfolio allocation against the strategic target allocation"
                 )
                 
                 # Get target allocations from assumptions page
@@ -306,38 +307,44 @@ if portfolio_df is not None:
                         'Alternatives': 6
                     }
                 
-                # Display allocation comparison
-                comparison_cols = st.columns([2, 1, 1, 1])
-                with comparison_cols[0]:
-                    st.write("**Asset Class**")
-                with comparison_cols[1]:
-                    st.write("**Portfolio %**")
-                with comparison_cols[2]:
-                    st.write("**Target %**")
-                with comparison_cols[3]:
-                    st.write("**Variance**")
+                # Display current profile being compared
+                st.info(f"Comparing against **{target_profile}** target allocation")
                 
-                st.markdown("---")
-                
-                for asset_class in asset_classes:
-                    portfolio_pct = asset_class_allocations.get(asset_class, 0.0)
-                    target_pct = target_allocations.get(asset_class, 0.0)
-                    variance = portfolio_pct - target_pct
+                # Create container to ensure table refreshes
+                with st.container():
+                    # Display allocation comparison
+                    comparison_cols = st.columns([2, 1, 1, 1])
+                    with comparison_cols[0]:
+                        st.write("**Asset Class**")
+                    with comparison_cols[1]:
+                        st.write("**Portfolio %**")
+                    with comparison_cols[2]:
+                        st.write("**Target %**")
+                    with comparison_cols[3]:
+                        st.write("**Variance**")
                     
-                    comp_row_cols = st.columns([2, 1, 1, 1])
-                    with comp_row_cols[0]:
-                        st.write(asset_class)
-                    with comp_row_cols[1]:
-                        st.write(f"{portfolio_pct:.1f}%")
-                    with comp_row_cols[2]:
-                        st.write(f"{target_pct:.1f}%")
-                    with comp_row_cols[3]:
-                        if variance > 0:
-                            st.write(f"+{variance:.1f}%")
-                        elif variance < 0:
-                            st.write(f"{variance:.1f}%")
-                        else:
-                            st.write("0.0%")
+                    st.markdown("---")
+                    
+                    # Display each asset class row
+                    for asset_class in asset_classes:
+                        portfolio_pct = asset_class_allocations.get(asset_class, 0.0)
+                        target_pct = target_allocations.get(asset_class, 0.0)
+                        variance = portfolio_pct - target_pct
+                        
+                        comp_row_cols = st.columns([2, 1, 1, 1])
+                        with comp_row_cols[0]:
+                            st.write(asset_class)
+                        with comp_row_cols[1]:
+                            st.write(f"{portfolio_pct:.1f}%")
+                        with comp_row_cols[2]:
+                            st.write(f"{target_pct:.1f}%")
+                        with comp_row_cols[3]:
+                            if variance > 0:
+                                st.write(f"+{variance:.1f}%")
+                            elif variance < 0:
+                                st.write(f"{variance:.1f}%")
+                            else:
+                                st.write("0.0%")
                 
                 # Summary metrics
                 st.markdown("---")
