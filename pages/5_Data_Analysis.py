@@ -272,6 +272,36 @@ with tabs[0]:
         # Reorder the dataframe columns
         reordered_df = selection_df[final_column_order].copy()
         
+        # Function to calculate top quartile for 3-year returns by category and add visual indicators
+        def calculate_top_quartile_by_category(df):
+            if '3 Years Annualised (%)' not in df.columns:
+                return df
+            
+            # Create a copy to avoid modifying the original
+            df_styled = df.copy()
+            
+            # Calculate top quartile threshold for each category
+            for category in df['Morningstar Category'].unique():
+                if pd.isna(category):
+                    continue
+                    
+                category_data = df[df['Morningstar Category'] == category]
+                returns_col = category_data['3 Years Annualised (%)']
+                
+                # Remove NaN values and calculate 75th percentile (top quartile)
+                valid_returns = returns_col.dropna()
+                if len(valid_returns) > 0:
+                    top_quartile_threshold = valid_returns.quantile(0.75)
+                    
+                    # Add visual indicator to fund names for top quartile
+                    mask = (df['Morningstar Category'] == category) & (df['3 Years Annualised (%)'] >= top_quartile_threshold)
+                    df_styled.loc[mask, 'Name'] = '🟢 ' + df_styled.loc[mask, 'Name'].astype(str)
+            
+            return df_styled
+        
+        # Add top quartile marking
+        reordered_df = calculate_top_quartile_by_category(reordered_df)
+        
         # Group by Morningstar Category
         if 'Morningstar Category' in reordered_df.columns:
             # Get unique categories
@@ -283,15 +313,24 @@ with tabs[0]:
             
             # All categories tab
             with tabs[0]:
+                # Create column configuration with conditional formatting
+                column_config = {
+                    "Select": st.column_config.CheckboxColumn(
+                        "Select",
+                        help="Check to add to portfolio",
+                        default=False,
+                    )
+                }
+                
+                # Show info about top quartile highlighting
+                if '3 Years Annualised (%)' in reordered_df.columns:
+                    st.info("🟢 Funds with 3-year returns in the top quartile for their category are marked with a green dot")
+                
+                display_df = reordered_df
+                
                 edited_df = st.data_editor(
-                    reordered_df,
-                    column_config={
-                        "Select": st.column_config.CheckboxColumn(
-                            "Select",
-                            help="Check to add to portfolio",
-                            default=False,
-                        )
-                    },
+                    display_df,
+                    column_config=column_config,
                     use_container_width=True,
                     hide_index=True,
                 )
@@ -306,6 +345,12 @@ with tabs[0]:
                     if not category_df.empty:
                         st.markdown(f"### {category}")
                         st.write(f"{len(category_df)} investments in this category")
+                        
+                        # Show info about top quartile highlighting for this category
+                        if '3 Years Annualised (%)' in category_df.columns:
+                            top_quartile_count = len([name for name in category_df['Name'] if str(name).startswith('🟢')])
+                            if top_quartile_count > 0:
+                                st.info(f"🟢 {top_quartile_count} funds in this category have 3-year returns in the top quartile")
                         
                         # Display editable dataframe for this category
                         cat_edited_df = st.data_editor(
@@ -348,6 +393,8 @@ with tabs[0]:
         # Get newly selected funds
         for idx, row in edited_df.iterrows():
             fund_name = row['Name']
+            # Remove green dot prefix if present for consistent processing
+            clean_fund_name = str(fund_name).replace('🟢 ', '') if str(fund_name).startswith('🟢 ') else fund_name
             fund_apir = row['APIR Code']
             fund_category = row['Morningstar Category'] if 'Morningstar Category' in row else "Unknown"
             is_selected = row['Select']
@@ -355,13 +402,13 @@ with tabs[0]:
             
             # Check if selection status changed
             if is_selected and not is_in_portfolio:
-                # Add to portfolio
-                add_to_portfolio(fund_name, fund_apir, fund_category, comment_input)
-                changed_rows.append(fund_name)
+                # Add to portfolio using clean name
+                add_to_portfolio(clean_fund_name, fund_apir, fund_category, comment_input)
+                changed_rows.append(clean_fund_name)
             elif not is_selected and is_in_portfolio:
                 # Remove from portfolio
                 del st.session_state.recommended_portfolio[fund_apir]
-                changed_rows.append(fund_name)
+                changed_rows.append(clean_fund_name)
         
         # Show portfolio status
         if st.session_state.recommended_portfolio:
