@@ -445,7 +445,7 @@ if portfolio_df is not None:
     st.subheader("Download Portfolio Report")
     
     # Create comprehensive Excel file with multiple sheets
-    if st.button("Generate Portfolio Report for Download"):
+    if st.button("Download Portfolio Report"):
         # Create an Excel file with multiple sheets
         output = io.BytesIO()
         
@@ -643,7 +643,8 @@ if portfolio_df is not None:
         
         st.success("Portfolio report generated successfully! The Excel file contains two sheets: 'All Formula Filtered Data' and 'Portfolio Analysis'.")
     
-    # Also keep the simple CSV option
+    # Optional: Also provide CSV download
+    st.subheader("Alternative Download Options")
     portfolio_with_allocations = portfolio_df.copy()
     portfolio_with_allocations['Allocation %'] = portfolio_with_allocations['APIR Code'].map(
         lambda x: st.session_state.portfolio_allocations.get(x, "")
