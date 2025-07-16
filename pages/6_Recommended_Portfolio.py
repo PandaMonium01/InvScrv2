@@ -61,30 +61,7 @@ if not st.session_state.recommended_portfolio:
 # Convert portfolio to DataFrame for display
 portfolio_df = portfolio_to_dataframe()
 
-# Display the recommended portfolio
-st.header("Selected Investments")
-
-# Display each selected fund with its details and comments
-for apir, fund in st.session_state.recommended_portfolio.items():
-    # Create a container for each fund with a border
-    with st.container():
-        st.markdown("---")
-        col1, col2 = st.columns([3, 1])
-        
-        with col1:
-            st.subheader(fund['Name'])
-            st.markdown(f"**APIR Code:** {fund['APIR Code']}")
-            st.markdown(f"**Category:** {fund['Morningstar Category']}")
-            
-            # Display comments if available
-            if 'Comments' in fund and fund['Comments']:
-                st.markdown("### Selection Rationale")
-                st.write(fund['Comments'])
-        
-        with col2:
-            # Add remove button
-            if st.button("Remove", key=f"remove_{apir}"):
-                remove_from_portfolio(apir)
+# No longer displaying individual fund details here - they're now in the allocation table
 
 # Portfolio allocation table
 st.header("Portfolio Allocation")
@@ -123,7 +100,7 @@ if portfolio_df is not None:
     
     # Create a table-like layout with individual input fields
     # Header row
-    col1, col2, col3, col4 = st.columns([1, 3, 2, 2])
+    col1, col2, col3, col4, col5 = st.columns([1, 3, 2, 2, 1])
     with col1:
         st.write("**Allocation %**")
     with col2:
@@ -132,10 +109,12 @@ if portfolio_df is not None:
         st.write("**APIR Code**")
     with col4:
         st.write("**Category**")
+    with col5:
+        st.write("**Action**")
     
     # Data rows with individual input fields
     for idx, (apir, fund) in enumerate(st.session_state.recommended_portfolio.items()):
-        col1, col2, col3, col4 = st.columns([1, 3, 2, 2])
+        col1, col2, col3, col4, col5 = st.columns([1, 3, 2, 2, 1])
         
         with col1:
             # Get current allocation
@@ -145,7 +124,7 @@ if portfolio_df is not None:
             
             # Create number input with unique key
             new_allocation = st.number_input(
-                label="",
+                label=f"Allocation for {fund['Name']}",
                 min_value=0.0,
                 max_value=100.0,
                 value=allocation_value,
@@ -160,12 +139,20 @@ if portfolio_df is not None:
         
         with col2:
             st.write(fund['Name'])
+            # Show comments if available
+            if 'Comments' in fund and fund['Comments']:
+                st.caption(f"💬 {fund['Comments']}")
         
         with col3:
             st.write(apir)
         
         with col4:
             st.write(fund['Morningstar Category'])
+        
+        with col5:
+            # Add remove button for each fund
+            if st.button("Remove", key=f"remove_{apir}", use_container_width=True):
+                remove_from_portfolio(apir)
     
     # Calculate and display total allocation
     total_allocation = 0.0
