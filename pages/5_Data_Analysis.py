@@ -302,6 +302,10 @@ with tabs[0]:
         # Add top quartile marking
         reordered_df = calculate_top_quartile_by_category(reordered_df)
         
+        # Sort by Composite Score (high to low) if it exists
+        if 'Composite Score' in reordered_df.columns:
+            reordered_df = reordered_df.sort_values('Composite Score', ascending=False, na_position='last')
+        
         # Group by Morningstar Category
         if 'Morningstar Category' in reordered_df.columns:
             # Get unique categories
