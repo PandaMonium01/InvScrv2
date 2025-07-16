@@ -238,7 +238,7 @@ if portfolio_df is not None:
                     'Alternatives'
                 ]
                 
-                # Calculate portfolio asset class allocations
+                # Calculate portfolio asset class allocations using Morningstar mapping
                 asset_class_allocations = {ac: 0.0 for ac in asset_classes}
                 total_allocated = 0.0
                 
@@ -253,12 +253,23 @@ if portfolio_df is not None:
                         except (ValueError, TypeError):
                             allocation_pct = 0.0
                     
-                    # Get selected asset class from mapping
-                    selected_asset_class = st.session_state.asset_class_mapping.get(apir, asset_classes[0])
-                    
-                    # Add to asset class total
-                    if selected_asset_class in asset_class_allocations:
-                        asset_class_allocations[selected_asset_class] += allocation_pct
+                    # Get fund details to find Morningstar category
+                    fund_info = detailed_portfolio[detailed_portfolio['APIR Code'] == apir]
+                    if not fund_info.empty:
+                        morningstar_category = fund_info.iloc[0].get('Morningstar Category', '')
+                        
+                        # Get asset class from Morningstar mapping
+                        if 'morningstar_asset_class_mapping' in st.session_state:
+                            selected_asset_class = st.session_state.morningstar_asset_class_mapping.get(
+                                morningstar_category, 'Cash'  # Default to Cash if not found
+                            )
+                        else:
+                            # Fallback to manual mapping if Morningstar mapping not available
+                            selected_asset_class = st.session_state.asset_class_mapping.get(apir, asset_classes[0])
+                        
+                        # Add to asset class total
+                        if selected_asset_class in asset_class_allocations:
+                            asset_class_allocations[selected_asset_class] += allocation_pct
                 
                 # Portfolio vs Target Allocation Analysis
                 st.subheader("Portfolio vs Target Allocation")
@@ -290,6 +301,29 @@ if portfolio_df is not None:
                         'Balanced (40/60)': [5, 25, 10, 28, 20, 6, 6],
                         'Growth (20/80)': [2, 12, 6, 38, 26, 8, 8],
                         'High Growth (0/100)': [2, 0, 0, 48, 34, 8, 8]
+                    }
+                
+                # Initialize Morningstar category mapping if not present
+                if 'morningstar_asset_class_mapping' not in st.session_state:
+                    st.session_state.morningstar_asset_class_mapping = {
+                        'Alternative - Private Equity': 'Alternatives',
+                        'Australia Equity Income': 'Australian Equities',
+                        'Australian Cash': 'Cash',
+                        'Bonds - Australia': 'Australian Fixed Interest',
+                        'Equity Australia Large Blend': 'Australian Equities',
+                        'Equity Australia Large Growth': 'Australian Equities',
+                        'Equity Australia Large Value': 'Australian Equities',
+                        'Equity Australia Mid/Small Growth': 'Australian Equities',
+                        'Equity Australia Real Estate': 'Property',
+                        'Equity Emerging Markets': 'International Equities',
+                        'Equity Region Emerging Markets': 'International Equities',
+                        'Equity Sector Global - Real Estate': 'Property',
+                        'Equity World - Currency Hedged': 'International Equities',
+                        'Equity World Large Blend': 'International Equities',
+                        'Equity World Large Growth': 'International Equities',
+                        'Equity World Large Value': 'International Equities',
+                        'Equity World Mid/Small': 'International Equities',
+                        'Global Bond': 'International Fixed Interest'
                     }
                 
                 # Get target allocations from assumptions page

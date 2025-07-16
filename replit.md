@@ -53,7 +53,10 @@ Preferred communication style: Simple, everyday language.
 
 ### 6. Assumptions (`pages/7_Assumptions.py`)
 - **Purpose**: Document methodology and provide configurable strategic asset allocation settings
-- **Features**: Interactive Strategic Asset Allocation table with 6 risk profiles and editable default values
+- **Features**: 
+  - Interactive Strategic Asset Allocation table with 6 risk profiles and editable default values
+  - **NEW**: Morningstar Category to Asset Class mapping table with dropdown selections
+  - Configurable category mappings that serve as system defaults for portfolio allocation analysis
 
 ## Data Flow
 

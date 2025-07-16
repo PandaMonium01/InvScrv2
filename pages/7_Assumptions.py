@@ -21,6 +21,29 @@ if 'strategic_asset_allocation' not in st.session_state:
         'High Growth (0/100)': [2, 0, 0, 48, 34, 8, 8]
     }
 
+# Initialize Morningstar category mapping in session state
+if 'morningstar_asset_class_mapping' not in st.session_state:
+    st.session_state.morningstar_asset_class_mapping = {
+        'Alternative - Private Equity': 'Alternatives',
+        'Australia Equity Income': 'Australian Equities',
+        'Australian Cash': 'Cash',
+        'Bonds - Australia': 'Australian Fixed Interest',
+        'Equity Australia Large Blend': 'Australian Equities',
+        'Equity Australia Large Growth': 'Australian Equities',
+        'Equity Australia Large Value': 'Australian Equities',
+        'Equity Australia Mid/Small Growth': 'Australian Equities',
+        'Equity Australia Real Estate': 'Property',
+        'Equity Emerging Markets': 'International Equities',
+        'Equity Region Emerging Markets': 'International Equities',
+        'Equity Sector Global - Real Estate': 'Property',
+        'Equity World - Currency Hedged': 'International Equities',
+        'Equity World Large Blend': 'International Equities',
+        'Equity World Large Growth': 'International Equities',
+        'Equity World Large Value': 'International Equities',
+        'Equity World Mid/Small': 'International Equities',
+        'Global Bond': 'International Fixed Interest'
+    }
+
 st.title("📋 Assumptions")
 
 st.markdown("""
@@ -198,6 +221,119 @@ with st.expander("Strategic Asset Allocation Table", expanded=True):
             'Balanced (40/60)': [5, 25, 10, 28, 20, 6, 6],
             'Growth (20/80)': [2, 12, 6, 38, 26, 8, 8],
             'High Growth (0/100)': [2, 0, 0, 48, 34, 8, 8]
+        }
+        st.rerun()
+
+# Morningstar Category to Asset Class Mapping
+st.header("🏷️ Morningstar Category Mapping")
+
+st.markdown("""
+The following table maps Morningstar fund categories to the asset classes used in portfolio allocation analysis. 
+You can modify these mappings to customize how different fund types are categorized.
+""")
+
+with st.expander("Morningstar Category to Asset Class Mapping", expanded=True):
+    st.subheader("Category Mapping Configuration")
+    
+    # Asset class options
+    asset_class_options = [
+        'Cash', 
+        'Australian Fixed Interest', 
+        'International Fixed Interest', 
+        'Australian Equities', 
+        'International Equities', 
+        'Property', 
+        'Alternatives'
+    ]
+    
+    # Display mapping table
+    st.markdown("**Morningstar Category → Asset Class Assignment**")
+    st.markdown("---")
+    
+    # Create columns for header
+    header_cols = st.columns([3, 2, 1])
+    with header_cols[0]:
+        st.write("**Morningstar Category**")
+    with header_cols[1]:
+        st.write("**Asset Class**")
+    with header_cols[2]:
+        st.write("**Actions**")
+    
+    st.markdown("---")
+    
+    # Display each mapping with dropdown
+    for category, current_asset_class in st.session_state.morningstar_asset_class_mapping.items():
+        cols = st.columns([3, 2, 1])
+        
+        with cols[0]:
+            st.write(category)
+        
+        with cols[1]:
+            try:
+                current_index = asset_class_options.index(current_asset_class)
+            except ValueError:
+                current_index = 0
+            
+            new_asset_class = st.selectbox(
+                f"Asset class for {category}",
+                asset_class_options,
+                index=current_index,
+                key=f"mapping_{category}",
+                label_visibility="collapsed"
+            )
+            
+            # Update session state if changed
+            if new_asset_class != current_asset_class:
+                st.session_state.morningstar_asset_class_mapping[category] = new_asset_class
+        
+        with cols[2]:
+            if st.button("Reset", key=f"reset_mapping_{category}"):
+                # Reset to default mapping
+                default_mappings = {
+                    'Alternative - Private Equity': 'Alternatives',
+                    'Australia Equity Income': 'Australian Equities',
+                    'Australian Cash': 'Cash',
+                    'Bonds - Australia': 'Australian Fixed Interest',
+                    'Equity Australia Large Blend': 'Australian Equities',
+                    'Equity Australia Large Growth': 'Australian Equities',
+                    'Equity Australia Large Value': 'Australian Equities',
+                    'Equity Australia Mid/Small Growth': 'Australian Equities',
+                    'Equity Australia Real Estate': 'Property',
+                    'Equity Emerging Markets': 'International Equities',
+                    'Equity Region Emerging Markets': 'International Equities',
+                    'Equity Sector Global - Real Estate': 'Property',
+                    'Equity World - Currency Hedged': 'International Equities',
+                    'Equity World Large Blend': 'International Equities',
+                    'Equity World Large Growth': 'International Equities',
+                    'Equity World Large Value': 'International Equities',
+                    'Equity World Mid/Small': 'International Equities',
+                    'Global Bond': 'International Fixed Interest'
+                }
+                if category in default_mappings:
+                    st.session_state.morningstar_asset_class_mapping[category] = default_mappings[category]
+                st.rerun()
+    
+    # Reset all mappings button
+    if st.button("Reset All Category Mappings to Defaults"):
+        st.session_state.morningstar_asset_class_mapping = {
+            'Alternative - Private Equity': 'Alternatives',
+            'Australia Equity Income': 'Australian Equities',
+            'Australian Cash': 'Cash',
+            'Bonds - Australia': 'Australian Fixed Interest',
+            'Equity Australia Large Blend': 'Australian Equities',
+            'Equity Australia Large Growth': 'Australian Equities',
+            'Equity Australia Large Value': 'Australian Equities',
+            'Equity Australia Mid/Small Growth': 'Australian Equities',
+            'Equity Australia Real Estate': 'Property',
+            'Equity Emerging Markets': 'International Equities',
+            'Equity Region Emerging Markets': 'International Equities',
+            'Equity Sector Global - Real Estate': 'Property',
+            'Equity World - Currency Hedged': 'International Equities',
+            'Equity World Large Blend': 'International Equities',
+            'Equity World Large Growth': 'International Equities',
+            'Equity World Large Value': 'International Equities',
+            'Equity World Mid/Small': 'International Equities',
+            'Global Bond': 'International Fixed Interest'
         }
         st.rerun()
 
