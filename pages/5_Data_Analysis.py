@@ -110,12 +110,44 @@ with tabs[0]:
             selection_df['APIR Code'].apply(lambda x: x in st.session_state.recommended_portfolio)
         )
         
+        # Calculate category averages from the CURRENT filtered dataset, not the original full dataset
+        current_data_averages = None
+        if display_data is not None and not display_data.empty:
+            # Calculate averages from the currently displayed data
+            avg_fields = ['3 Year Beta', '3 Year Standard Deviation', '3 Year Sharpe Ratio']
+            existing_fields = [f for f in avg_fields if f in display_data.columns]
+            if existing_fields and 'Morningstar Category' in display_data.columns:
+                subset_for_avg = display_data[['Morningstar Category'] + existing_fields].copy()
+                current_data_averages = subset_for_avg.groupby('Morningstar Category').mean(numeric_only=True)
+                
+                # Debug: Show the counts and averages for Equity World Large Blend from filtered data
+                if 'Equity World Large Blend' in current_data_averages.index:
+                    category_data = display_data[display_data['Morningstar Category'] == 'Equity World Large Blend']
+                    
+                    # Count funds with valid 3-year data
+                    beta_count = category_data['3 Year Beta'].notna().sum()
+                    stdev_count = category_data['3 Year Standard Deviation'].notna().sum()
+                    sharpe_count = category_data['3 Year Sharpe Ratio'].notna().sum()
+                    
+                    print(f"DEBUG - Equity World Large Blend (FILTERED DATA):")
+                    print(f"  Total funds: {len(category_data)}")
+                    print(f"  Beta count (valid): {beta_count}")
+                    print(f"  StdDev count (valid): {stdev_count}")
+                    print(f"  Sharpe count (valid): {sharpe_count}")
+                    
+                    if beta_count > 0:
+                        print(f"  Beta average: {current_data_averages.loc['Equity World Large Blend', '3 Year Beta']:.8f}")
+                    if stdev_count > 0:
+                        print(f"  StdDev average: {current_data_averages.loc['Equity World Large Blend', '3 Year Standard Deviation']:.8f}")
+                    if sharpe_count > 0:
+                        print(f"  Sharpe average: {current_data_averages.loc['Equity World Large Blend', '3 Year Sharpe Ratio']:.8f}")
+
         # Add a new column that calculates category avg 3 Year Beta minus fund's 3 Year Beta
         if '3 Year Beta' in selection_df.columns and 'Morningstar Category' in selection_df.columns:
-            # Get category averages
-            if st.session_state.asset_class_averages is not None and '3 Year Beta' in st.session_state.asset_class_averages.columns:
+            # Use current data averages instead of original full dataset averages
+            if current_data_averages is not None and '3 Year Beta' in current_data_averages.columns:
                 # Create a dictionary mapping category to average beta
-                category_betas = st.session_state.asset_class_averages['3 Year Beta'].to_dict()
+                category_betas = current_data_averages['3 Year Beta'].to_dict()
                 
                 # Function to calculate the difference
                 def calc_beta_diff(row):
@@ -128,10 +160,6 @@ with tabs[0]:
                         category_avg = category_betas[category]
                         fund_beta = row['3 Year Beta']
                         
-                        # Debug info for ACM3679AU
-                        if row.get('APIR Code') == 'ACM3679AU':
-                            print(f"DEBUG - ACM3679AU: Category={category}, Category Avg={category_avg}, Fund Beta={fund_beta}, Diff={category_avg - fund_beta}")
-                        
                         return category_avg - fund_beta
                     return None
                 
@@ -141,12 +169,12 @@ with tabs[0]:
                 # If asset class averages aren't available, add empty column
                 selection_df['Category Avg Beta - Fund Beta'] = None
         
-        # Add a new column that calculates category avg 3 Year Sharpe Ratio minus fund's 3 Year Sharpe Ratio
+        # Add a new column that calculates fund's 3 Year Sharpe Ratio minus category avg 3 Year Sharpe Ratio
         if '3 Year Sharpe Ratio' in selection_df.columns and 'Morningstar Category' in selection_df.columns:
-            # Get category averages
-            if st.session_state.asset_class_averages is not None and '3 Year Sharpe Ratio' in st.session_state.asset_class_averages.columns:
+            # Use current data averages instead of original full dataset averages
+            if current_data_averages is not None and '3 Year Sharpe Ratio' in current_data_averages.columns:
                 # Create a dictionary mapping category to average sharpe ratio
-                category_sharpes = st.session_state.asset_class_averages['3 Year Sharpe Ratio'].to_dict()
+                category_sharpes = current_data_averages['3 Year Sharpe Ratio'].to_dict()
                 
                 # Function to calculate the difference
                 def calc_sharpe_diff(row):
@@ -166,12 +194,12 @@ with tabs[0]:
                 # If asset class averages aren't available, add empty column
                 selection_df['Fund Sharpe - Category Avg Sharpe'] = None
         
-        # Add a new column that calculates category avg 3 Year Standard Deviation minus fund's 3 Year Standard Deviation
+        # Add a new column that calculates fund's 3 Year Standard Deviation minus category avg 3 Year Standard Deviation
         if '3 Year Standard Deviation' in selection_df.columns and 'Morningstar Category' in selection_df.columns:
-            # Get category averages
-            if st.session_state.asset_class_averages is not None and '3 Year Standard Deviation' in st.session_state.asset_class_averages.columns:
+            # Use current data averages instead of original full dataset averages
+            if current_data_averages is not None and '3 Year Standard Deviation' in current_data_averages.columns:
                 # Create a dictionary mapping category to average standard deviation
-                category_stdevs = st.session_state.asset_class_averages['3 Year Standard Deviation'].to_dict()
+                category_stdevs = current_data_averages['3 Year Standard Deviation'].to_dict()
                 
                 # Function to calculate the difference
                 def calc_stdev_diff(row):
