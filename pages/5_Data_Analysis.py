@@ -212,6 +212,15 @@ with tabs[0]:
                 
                 # Apply the formula: ((Fund StdDev - Category Avg StdDev) / 10) + (Fund Sharpe - Category Avg Sharpe) + (Category Avg Beta - Fund Beta)
                 composite_score = (stdev_diff / 10) + sharpe_diff + beta_diff
+                
+                # Debug for FSF1240AU
+                if row.get('APIR Code') == 'FSF1240AU':
+                    print(f"DEBUG - FSF1240AU Composite Score:")
+                    print(f"  Fund StdDev - Category Avg StdDev: {stdev_diff}")
+                    print(f"  Fund Sharpe - Category Avg Sharpe: {sharpe_diff}")
+                    print(f"  Category Avg Beta - Fund Beta: {beta_diff}")
+                    print(f"  Calculation: ({stdev_diff} / 10) + {sharpe_diff} + {beta_diff} = {composite_score}")
+                
                 return composite_score
             
             # Apply the function to create the new column
