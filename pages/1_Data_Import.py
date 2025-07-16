@@ -162,7 +162,7 @@ if uploaded_files:
                 
                 # Indicate data is loaded
                 try:
-                    st.experimental_set_query_params(data_loaded=True)
+                    st.query_params["data_loaded"] = "true"
                 except:
                     # Silently continue if setting query params fails
                     pass
