@@ -252,6 +252,29 @@ def calculate_asset_class_averages(df):
         # Group by Morningstar Category (asset class) and calculate mean values
         # This will automatically exclude NaN values from the calculation
         asset_class_averages = df.groupby('Morningstar Category').mean(numeric_only=True)
+        
+        # Debug: Show the counts and averages for Equity World Large Blend
+        if 'Equity World Large Blend' in asset_class_averages.index:
+            category_data = df[df['Morningstar Category'] == 'Equity World Large Blend']
+            
+            # Count funds with valid 3-year data
+            beta_count = category_data['3 Year Beta'].notna().sum()
+            stdev_count = category_data['3 Year Standard Deviation'].notna().sum()
+            sharpe_count = category_data['3 Year Sharpe Ratio'].notna().sum()
+            
+            print(f"DEBUG - Equity World Large Blend:")
+            print(f"  Total funds: {len(category_data)}")
+            print(f"  Beta count (valid): {beta_count}")
+            print(f"  StdDev count (valid): {stdev_count}")
+            print(f"  Sharpe count (valid): {sharpe_count}")
+            
+            if beta_count > 0:
+                print(f"  Beta average: {asset_class_averages.loc['Equity World Large Blend', '3 Year Beta']:.8f}")
+            if stdev_count > 0:
+                print(f"  StdDev average: {asset_class_averages.loc['Equity World Large Blend', '3 Year Standard Deviation']:.8f}")
+            if sharpe_count > 0:
+                print(f"  Sharpe average: {asset_class_averages.loc['Equity World Large Blend', '3 Year Sharpe Ratio']:.8f}")
+        
         return asset_class_averages
     
     except Exception as e:
