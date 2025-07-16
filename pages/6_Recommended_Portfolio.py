@@ -117,48 +117,55 @@ if portfolio_df is not None:
     # Create DataFrame for the allocation table
     allocation_df = pd.DataFrame(allocation_data)
     
-    # Display the editable allocation table
+    # Display the allocation table using custom input fields for better navigation
     st.write("**Portfolio Allocation Table**")
     st.write("💡 **Tip:** Use Tab key to move between allocation fields for quick data entry")
     
-    edited_allocation_df = st.data_editor(
-        allocation_df,
-        column_config={
-            "Allocation %": st.column_config.NumberColumn(
-                "Allocation %",
-                width="small",
-                min_value=0,
-                max_value=100,
+    # Create a table-like layout with individual input fields
+    # Header row
+    col1, col2, col3, col4 = st.columns([1, 3, 2, 2])
+    with col1:
+        st.write("**Allocation %**")
+    with col2:
+        st.write("**Fund Name**")
+    with col3:
+        st.write("**APIR Code**")
+    with col4:
+        st.write("**Category**")
+    
+    # Data rows with individual input fields
+    for idx, (apir, fund) in enumerate(st.session_state.recommended_portfolio.items()):
+        col1, col2, col3, col4 = st.columns([1, 3, 2, 2])
+        
+        with col1:
+            # Get current allocation
+            current_allocation = st.session_state.portfolio_allocations.get(apir, "")
+            # Convert to float for number input, or use None if empty
+            allocation_value = float(current_allocation) if current_allocation and current_allocation != "" else None
+            
+            # Create number input with unique key
+            new_allocation = st.number_input(
+                label="",
+                min_value=0.0,
+                max_value=100.0,
+                value=allocation_value,
                 step=0.1,
                 format="%.1f",
-                help="Enter the percentage allocation for this fund (use Tab to move to next field)"
-            ),
-            "Fund Name": st.column_config.TextColumn(
-                "Fund Name",
-                width="large",
-                disabled=True
-            ),
-            "APIR Code": st.column_config.TextColumn(
-                "APIR Code",
-                width="medium",
-                disabled=True
-            ),
-            "Category": st.column_config.TextColumn(
-                "Category",
-                width="medium",
-                disabled=True
+                key=f"allocation_{apir}",
+                label_visibility="collapsed"
             )
-        },
-        use_container_width=True,
-        hide_index=True,
-        key="allocation_editor"
-    )
-    
-    # Update session state with edited allocations
-    for idx, row in edited_allocation_df.iterrows():
-        apir = row['APIR Code']
-        allocation = row['Allocation %']
-        st.session_state.portfolio_allocations[apir] = allocation if pd.notna(allocation) else ""
+            
+            # Update session state with new allocation
+            st.session_state.portfolio_allocations[apir] = new_allocation if new_allocation is not None else ""
+        
+        with col2:
+            st.write(fund['Name'])
+        
+        with col3:
+            st.write(apir)
+        
+        with col4:
+            st.write(fund['Morningstar Category'])
     
     # Calculate and display total allocation
     total_allocation = 0.0
