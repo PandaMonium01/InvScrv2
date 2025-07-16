@@ -119,11 +119,12 @@ with tabs[0]:
                 
                 # Function to calculate the difference
                 def calc_beta_diff(row):
+                    # If fund doesn't have 3 Year Beta data, return None (will show as N/A)
                     if pd.isna(row['3 Year Beta']):
                         return None
                     
                     category = row['Morningstar Category']
-                    if category in category_betas:
+                    if category in category_betas and not pd.isna(category_betas[category]):
                         category_avg = category_betas[category]
                         fund_beta = row['3 Year Beta']
                         
@@ -149,11 +150,12 @@ with tabs[0]:
                 
                 # Function to calculate the difference
                 def calc_sharpe_diff(row):
+                    # If fund doesn't have 3 Year Sharpe Ratio data, return None (will show as N/A)
                     if pd.isna(row['3 Year Sharpe Ratio']):
                         return None
                     
                     category = row['Morningstar Category']
-                    if category in category_sharpes:
+                    if category in category_sharpes and not pd.isna(category_sharpes[category]):
                         category_avg = category_sharpes[category]
                         return row['3 Year Sharpe Ratio'] - category_avg
                     return None
@@ -173,11 +175,12 @@ with tabs[0]:
                 
                 # Function to calculate the difference
                 def calc_stdev_diff(row):
+                    # If fund doesn't have 3 Year Standard Deviation data, return None (will show as N/A)
                     if pd.isna(row['3 Year Standard Deviation']):
                         return None
                     
                     category = row['Morningstar Category']
-                    if category in category_stdevs:
+                    if category in category_stdevs and not pd.isna(category_stdevs[category]):
                         category_avg = category_stdevs[category]
                         return row['3 Year Standard Deviation'] - category_avg
                     return None

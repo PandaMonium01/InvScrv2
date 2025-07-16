@@ -190,11 +190,16 @@ def load_and_process_csv(file):
             missing_count = df[REQUIRED_COLUMNS].isna().sum().sum()
             print(f"Warning: {missing_count} missing values found in important columns")
         
-        # Handle missing values - for numeric columns, fill with median
+        # Handle missing values - for numeric columns, fill with median EXCEPT for key 3-year metrics
+        # These should remain as NaN to exclude from averages
+        key_3year_metrics = ['3 Year Beta', '3 Year Standard Deviation', '3 Year Sharpe Ratio']
+        
         numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns
         for col in numeric_cols:
             if df[col].isna().sum() > 0:
-                df[col] = df[col].fillna(df[col].median())
+                # Don't fill missing values for key 3-year metrics - keep as NaN
+                if col not in key_3year_metrics:
+                    df[col] = df[col].fillna(df[col].median())
         
         # For categorical/string columns, fill with "Unknown"
         object_cols = df.select_dtypes(include=['object']).columns
@@ -245,7 +250,8 @@ def calculate_asset_class_averages(df):
     
     try:
         # Group by Morningstar Category (asset class) and calculate mean values
-        asset_class_averages = df.groupby('Morningstar Category').mean()
+        # This will automatically exclude NaN values from the calculation
+        asset_class_averages = df.groupby('Morningstar Category').mean(numeric_only=True)
         return asset_class_averages
     
     except Exception as e:
