@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import io
 
 # Set page configuration
 st.set_page_config(
@@ -440,7 +441,199 @@ if portfolio_df is not None:
     else:
         st.info("No data available for portfolio metric calculations")
     
-    # Download portfolio with allocations
+    # Download portfolio with allocations and comprehensive data
+    st.subheader("Download Portfolio Report")
+    
+    # Create comprehensive Excel file with multiple sheets
+    if st.button("Generate Portfolio Report for Download"):
+        # Create an Excel file with multiple sheets
+        output = io.BytesIO()
+        
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            # Sheet 1: All Formula Filtered Data
+            if st.session_state.filtered_selection is not None and not st.session_state.filtered_selection.empty:
+                st.session_state.filtered_selection.to_excel(writer, sheet_name='All Formula Filtered Data', index=False)
+            elif st.session_state.combined_data is not None and not st.session_state.combined_data.empty:
+                st.session_state.combined_data.to_excel(writer, sheet_name='All Combined Data', index=False)
+            
+            # Sheet 2: Portfolio Analysis
+            portfolio_sheet_data = []
+            
+            # Add portfolio funds with allocations
+            portfolio_with_allocations = portfolio_df.copy()
+            portfolio_with_allocations['Allocation %'] = portfolio_with_allocations['APIR Code'].map(
+                lambda x: st.session_state.portfolio_allocations.get(x, "")
+            )
+            
+            # Get detailed fund information for portfolio
+            if st.session_state.combined_data is not None and not st.session_state.combined_data.empty:
+                portfolio_apirs = list(st.session_state.recommended_portfolio.keys())
+                detailed_portfolio = st.session_state.combined_data[
+                    st.session_state.combined_data['APIR Code'].isin(portfolio_apirs)
+                ]
+                
+                if not detailed_portfolio.empty:
+                    # Merge portfolio allocations with detailed data
+                    detailed_with_allocations = detailed_portfolio.copy()
+                    detailed_with_allocations['Allocation %'] = detailed_with_allocations['APIR Code'].map(
+                        lambda x: st.session_state.portfolio_allocations.get(x, "")
+                    )
+                    detailed_with_allocations['Asset Class'] = detailed_with_allocations['APIR Code'].map(
+                        lambda x: st.session_state.asset_class_mapping.get(x, "")
+                    )
+                    
+                    # Add empty rows for spacing
+                    portfolio_sheet_data.append(pd.DataFrame([['=== PORTFOLIO FUNDS ==='] + [''] * (len(detailed_with_allocations.columns) - 1)], 
+                                                           columns=detailed_with_allocations.columns))
+                    portfolio_sheet_data.append(detailed_with_allocations)
+                    
+                    # Add portfolio metrics
+                    portfolio_sheet_data.append(pd.DataFrame([[''] * len(detailed_with_allocations.columns)], 
+                                                           columns=detailed_with_allocations.columns))
+                    portfolio_sheet_data.append(pd.DataFrame([['=== PORTFOLIO METRICS ==='] + [''] * (len(detailed_with_allocations.columns) - 1)], 
+                                                           columns=detailed_with_allocations.columns))
+                    
+                    # Calculate portfolio metrics
+                    total_weight = 0.0
+                    weighted_return = 0.0
+                    weighted_stddev = 0.0
+                    weighted_beta = 0.0
+                    weighted_sharpe = 0.0
+                    weighted_mer = 0.0
+                    
+                    for apir in portfolio_apirs:
+                        allocation = st.session_state.portfolio_allocations.get(apir, "")
+                        if allocation and allocation != "":
+                            try:
+                                weight = float(allocation) / 100.0
+                                fund_data = detailed_portfolio[detailed_portfolio['APIR Code'] == apir]
+                                
+                                if not fund_data.empty:
+                                    fund_row = fund_data.iloc[0]
+                                    
+                                    return_3yr = fund_row.get('3 Years Annualised (%)', 0)
+                                    stddev = fund_row.get('3 Year Standard Deviation', 0)
+                                    beta = fund_row.get('3 Year Beta', 0)
+                                    sharpe = fund_row.get('3 Year Sharpe Ratio', 0)
+                                    mer = fund_row.get('Investment Management Fee(%)', 0)
+                                    
+                                    if pd.notna(return_3yr):
+                                        weighted_return += weight * float(return_3yr)
+                                    if pd.notna(stddev):
+                                        weighted_stddev += weight * float(stddev)
+                                    if pd.notna(beta):
+                                        weighted_beta += weight * float(beta)
+                                    if pd.notna(sharpe):
+                                        weighted_sharpe += weight * float(sharpe)
+                                    if pd.notna(mer):
+                                        weighted_mer += weight * float(mer)
+                                    
+                                    total_weight += weight
+                            except (ValueError, TypeError):
+                                continue
+                    
+                    # Create metrics dataframe
+                    metrics_data = pd.DataFrame([
+                        ['Portfolio 3Yr Return (%)', f"{weighted_return:.2f}"] + [''] * (len(detailed_with_allocations.columns) - 2),
+                        ['Portfolio Standard Deviation', f"{weighted_stddev:.2f}"] + [''] * (len(detailed_with_allocations.columns) - 2),
+                        ['Portfolio Beta', f"{weighted_beta:.2f}"] + [''] * (len(detailed_with_allocations.columns) - 2),
+                        ['Portfolio Sharpe Ratio', f"{weighted_sharpe:.2f}"] + [''] * (len(detailed_with_allocations.columns) - 2),
+                        ['Portfolio MER (%)', f"{weighted_mer:.2f}"] + [''] * (len(detailed_with_allocations.columns) - 2),
+                        ['Total Portfolio Weight (%)', f"{total_weight * 100:.1f}"] + [''] * (len(detailed_with_allocations.columns) - 2)
+                    ], columns=detailed_with_allocations.columns)
+                    
+                    portfolio_sheet_data.append(metrics_data)
+                    
+                    # Add asset class allocation analysis
+                    portfolio_sheet_data.append(pd.DataFrame([[''] * len(detailed_with_allocations.columns)], 
+                                                           columns=detailed_with_allocations.columns))
+                    portfolio_sheet_data.append(pd.DataFrame([['=== ASSET CLASS ALLOCATION ANALYSIS ==='] + [''] * (len(detailed_with_allocations.columns) - 1)], 
+                                                           columns=detailed_with_allocations.columns))
+                    
+                    # Calculate asset class allocations
+                    asset_classes = ['Cash', 'Australian Fixed Interest', 'International Fixed Interest', 
+                                   'Australian Equities', 'International Equities', 'Property', 'Alternatives']
+                    asset_class_allocations = {ac: 0.0 for ac in asset_classes}
+                    
+                    for apir in portfolio_apirs:
+                        allocation = st.session_state.portfolio_allocations.get(apir, "")
+                        if allocation and allocation != "":
+                            try:
+                                allocation_pct = float(allocation)
+                                selected_asset_class = st.session_state.asset_class_mapping.get(apir, asset_classes[0])
+                                if selected_asset_class in asset_class_allocations:
+                                    asset_class_allocations[selected_asset_class] += allocation_pct
+                            except (ValueError, TypeError):
+                                continue
+                    
+                    # Get target allocations
+                    target_profile = "Balanced (40/60)"  # Default
+                    target_allocations = {}
+                    
+                    if 'strategic_asset_allocation' in st.session_state:
+                        asset_class_names = st.session_state.strategic_asset_allocation['Asset Class']
+                        target_values = st.session_state.strategic_asset_allocation[target_profile]
+                        
+                        asset_class_mapping = {
+                            'Cash': 'Cash',
+                            'Fixed Interest': 'Australian Fixed Interest',
+                            'International Fixed Interest': 'International Fixed Interest',
+                            'Australian Shares': 'Australian Equities',
+                            'International Shares': 'International Equities',
+                            'Property': 'Property',
+                            'Alternatives': 'Alternatives'
+                        }
+                        
+                        for i, assumption_asset_class in enumerate(asset_class_names):
+                            mapped_class = asset_class_mapping.get(assumption_asset_class, assumption_asset_class)
+                            if mapped_class in target_allocations:
+                                target_allocations[mapped_class] += target_values[i]
+                            else:
+                                target_allocations[mapped_class] = target_values[i]
+                    else:
+                        # Default target allocations
+                        target_allocations = {
+                            'Cash': 5, 'Australian Fixed Interest': 25, 'International Fixed Interest': 10,
+                            'Australian Equities': 28, 'International Equities': 20, 'Property': 6, 'Alternatives': 6
+                        }
+                    
+                    # Create allocation comparison data
+                    allocation_comparison = []
+                    for asset_class in asset_classes:
+                        portfolio_pct = asset_class_allocations.get(asset_class, 0.0)
+                        target_pct = target_allocations.get(asset_class, 0.0)
+                        variance = portfolio_pct - target_pct
+                        allocation_comparison.append([asset_class, f"{portfolio_pct:.1f}%", f"{target_pct:.1f}%", f"{variance:+.1f}%"])
+                    
+                    allocation_df = pd.DataFrame(allocation_comparison, 
+                                               columns=['Asset Class', 'Portfolio %', 'Target %', 'Variance'] + [''] * (len(detailed_with_allocations.columns) - 4))
+                    
+                    portfolio_sheet_data.append(allocation_df)
+                    
+                    # Combine all portfolio data
+                    portfolio_combined = pd.concat(portfolio_sheet_data, ignore_index=True)
+                    portfolio_combined.to_excel(writer, sheet_name='Portfolio Analysis', index=False)
+                else:
+                    # Fallback if no detailed data available
+                    portfolio_with_allocations.to_excel(writer, sheet_name='Portfolio Analysis', index=False)
+            else:
+                # Fallback if no main data available
+                portfolio_with_allocations.to_excel(writer, sheet_name='Portfolio Analysis', index=False)
+        
+        # Prepare the file for download
+        output.seek(0)
+        excel_data = output.read()
+        
+        st.download_button(
+            label="Download Portfolio Report (Excel)",
+            data=excel_data,
+            file_name="recommended_portfolio_report.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        
+        st.success("Portfolio report generated successfully! The Excel file contains two sheets: 'All Formula Filtered Data' and 'Portfolio Analysis'.")
+    
+    # Also keep the simple CSV option
     portfolio_with_allocations = portfolio_df.copy()
     portfolio_with_allocations['Allocation %'] = portfolio_with_allocations['APIR Code'].map(
         lambda x: st.session_state.portfolio_allocations.get(x, "")
@@ -448,7 +641,7 @@ if portfolio_df is not None:
     
     csv_portfolio = portfolio_with_allocations.to_csv(index=False)
     st.download_button(
-        label="Download Portfolio with Allocations",
+        label="Download Portfolio with Allocations (CSV)",
         data=csv_portfolio,
         file_name="recommended_portfolio_with_allocations.csv",
         mime="text/csv",

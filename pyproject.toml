@@ -12,4 +12,5 @@ dependencies = [
     "scipy>=1.15.3",
     "streamlit>=1.45.1",
     "trafilatura>=2.0.0",
+    "xlsxwriter>=3.2.5",
 ]
