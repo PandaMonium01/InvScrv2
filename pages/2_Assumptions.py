@@ -8,11 +8,191 @@ st.set_page_config(
     layout="wide",
 )
 
+# Initialize strategic asset allocation in session state
+if 'strategic_asset_allocation' not in st.session_state:
+    st.session_state.strategic_asset_allocation = {
+        'Asset Class': ['Cash', 'Fixed Interest', 'International Fixed Interest', 'Australian Shares', 'International Shares', 'Property', 'Alternatives'],
+        'Type': ['Income', 'Income', 'Income', 'Growth', 'Growth', 'Income and Growth', 'Income and Growth'],
+        'Defensive (100/0)': [70, 30, 0, 0, 0, 0, 0],
+        'Conservative (80/20)': [20, 40, 20, 8, 6, 3, 3],
+        'Moderate (60/40)': [15, 30, 15, 18, 12, 5, 5],
+        'Balanced (40/60)': [5, 25, 10, 28, 20, 6, 6],
+        'Growth (20/80)': [2, 12, 6, 38, 26, 8, 8],
+        'High Growth (0/100)': [2, 0, 0, 48, 34, 8, 8]
+    }
+
 st.title("📋 Assumptions")
 
 st.markdown("""
 This page outlines the key assumptions and methodology used in the investment selection tool.
 """)
+
+# Strategic Asset Allocation
+st.header("📊 Strategic Asset Allocation")
+
+st.markdown("""
+The following table shows the strategic asset allocation guidelines for different risk profiles. 
+Each investment risk profile is supported by asset allocation guidelines designed to match your investment experience and risk tolerance with your expectations for investment returns.
+
+You can modify these default values if needed for your specific analysis.
+""")
+
+# Create editable table for strategic asset allocation
+with st.expander("Strategic Asset Allocation Table", expanded=True):
+    # Create DataFrame from session state
+    allocation_df = pd.DataFrame(st.session_state.strategic_asset_allocation)
+    
+    # Display editable table
+    st.subheader("Asset Allocation by Risk Profile")
+    
+    # Create columns for the table
+    col1, col2, col3, col4, col5, col6, col7, col8 = st.columns(8)
+    
+    with col1:
+        st.write("**Asset Class**")
+        st.write("**Type**")
+    with col2:
+        st.write("**Defensive**")
+        st.write("**(100/0)**")
+    with col3:
+        st.write("**Conservative**")
+        st.write("**(80/20)**")
+    with col4:
+        st.write("**Moderate**")
+        st.write("**(60/40)**")
+    with col5:
+        st.write("**Balanced**")
+        st.write("**(40/60)**")
+    with col6:
+        st.write("**Growth**")
+        st.write("**(20/80)**")
+    with col7:
+        st.write("**High Growth**")
+        st.write("**(0/100)**")
+    with col8:
+        st.write("**Actions**")
+        st.write("")
+    
+    # Create input fields for each row
+    for i, asset_class in enumerate(allocation_df['Asset Class']):
+        with col1:
+            st.write(f"**{asset_class}**")
+            st.write(f"*{allocation_df.loc[i, 'Type']}*")
+        
+        with col2:
+            new_defensive = st.number_input(
+                f"def_{i}", 
+                value=allocation_df.loc[i, 'Defensive (100/0)'],
+                min_value=0,
+                max_value=100,
+                step=1,
+                label_visibility="collapsed"
+            )
+            st.session_state.strategic_asset_allocation['Defensive (100/0)'][i] = new_defensive
+        
+        with col3:
+            new_conservative = st.number_input(
+                f"con_{i}", 
+                value=allocation_df.loc[i, 'Conservative (80/20)'],
+                min_value=0,
+                max_value=100,
+                step=1,
+                label_visibility="collapsed"
+            )
+            st.session_state.strategic_asset_allocation['Conservative (80/20)'][i] = new_conservative
+        
+        with col4:
+            new_moderate = st.number_input(
+                f"mod_{i}", 
+                value=allocation_df.loc[i, 'Moderate (60/40)'],
+                min_value=0,
+                max_value=100,
+                step=1,
+                label_visibility="collapsed"
+            )
+            st.session_state.strategic_asset_allocation['Moderate (60/40)'][i] = new_moderate
+        
+        with col5:
+            new_balanced = st.number_input(
+                f"bal_{i}", 
+                value=allocation_df.loc[i, 'Balanced (40/60)'],
+                min_value=0,
+                max_value=100,
+                step=1,
+                label_visibility="collapsed"
+            )
+            st.session_state.strategic_asset_allocation['Balanced (40/60)'][i] = new_balanced
+        
+        with col6:
+            new_growth = st.number_input(
+                f"gro_{i}", 
+                value=allocation_df.loc[i, 'Growth (20/80)'],
+                min_value=0,
+                max_value=100,
+                step=1,
+                label_visibility="collapsed"
+            )
+            st.session_state.strategic_asset_allocation['Growth (20/80)'][i] = new_growth
+        
+        with col7:
+            new_high_growth = st.number_input(
+                f"hg_{i}", 
+                value=allocation_df.loc[i, 'High Growth (0/100)'],
+                min_value=0,
+                max_value=100,
+                step=1,
+                label_visibility="collapsed"
+            )
+            st.session_state.strategic_asset_allocation['High Growth (0/100)'][i] = new_high_growth
+        
+        with col8:
+            if st.button(f"Reset {asset_class}", key=f"reset_{i}"):
+                # Reset to default values
+                defaults = {
+                    'Cash': {'Defensive (100/0)': 70, 'Conservative (80/20)': 20, 'Moderate (60/40)': 15, 'Balanced (40/60)': 5, 'Growth (20/80)': 2, 'High Growth (0/100)': 2},
+                    'Fixed Interest': {'Defensive (100/0)': 30, 'Conservative (80/20)': 40, 'Moderate (60/40)': 30, 'Balanced (40/60)': 25, 'Growth (20/80)': 12, 'High Growth (0/100)': 0},
+                    'International Fixed Interest': {'Defensive (100/0)': 0, 'Conservative (80/20)': 20, 'Moderate (60/40)': 15, 'Balanced (40/60)': 10, 'Growth (20/80)': 6, 'High Growth (0/100)': 0},
+                    'Australian Shares': {'Defensive (100/0)': 0, 'Conservative (80/20)': 8, 'Moderate (60/40)': 18, 'Balanced (40/60)': 28, 'Growth (20/80)': 38, 'High Growth (0/100)': 48},
+                    'International Shares': {'Defensive (100/0)': 0, 'Conservative (80/20)': 6, 'Moderate (60/40)': 12, 'Balanced (40/60)': 20, 'Growth (20/80)': 26, 'High Growth (0/100)': 34},
+                    'Property': {'Defensive (100/0)': 0, 'Conservative (80/20)': 3, 'Moderate (60/40)': 5, 'Balanced (40/60)': 6, 'Growth (20/80)': 8, 'High Growth (0/100)': 8},
+                    'Alternatives': {'Defensive (100/0)': 0, 'Conservative (80/20)': 3, 'Moderate (60/40)': 5, 'Balanced (40/60)': 6, 'Growth (20/80)': 8, 'High Growth (0/100)': 8}
+                }
+                
+                if asset_class in defaults:
+                    for profile, value in defaults[asset_class].items():
+                        st.session_state.strategic_asset_allocation[profile][i] = value
+                st.rerun()
+    
+    # Calculate and display totals
+    st.subheader("Profile Totals")
+    totals_df = pd.DataFrame(st.session_state.strategic_asset_allocation)
+    
+    profile_totals = {}
+    for profile in ['Defensive (100/0)', 'Conservative (80/20)', 'Moderate (60/40)', 'Balanced (40/60)', 'Growth (20/80)', 'High Growth (0/100)']:
+        total = sum(totals_df[profile])
+        profile_totals[profile] = total
+        
+        # Color code based on total
+        if total == 100:
+            st.success(f"{profile}: {total}%")
+        elif total > 100:
+            st.error(f"{profile}: {total}% (Over-allocated)")
+        else:
+            st.warning(f"{profile}: {total}% (Under-allocated)")
+    
+    # Reset all button
+    if st.button("Reset All to Defaults"):
+        st.session_state.strategic_asset_allocation = {
+            'Asset Class': ['Cash', 'Fixed Interest', 'International Fixed Interest', 'Australian Shares', 'International Shares', 'Property', 'Alternatives'],
+            'Type': ['Income', 'Income', 'Income', 'Growth', 'Growth', 'Income and Growth', 'Income and Growth'],
+            'Defensive (100/0)': [70, 30, 0, 0, 0, 0, 0],
+            'Conservative (80/20)': [20, 40, 20, 8, 6, 3, 3],
+            'Moderate (60/40)': [15, 30, 15, 18, 12, 5, 5],
+            'Balanced (40/60)': [5, 25, 10, 28, 20, 6, 6],
+            'Growth (20/80)': [2, 12, 6, 38, 26, 8, 8],
+            'High Growth (0/100)': [2, 0, 0, 48, 34, 8, 8]
+        }
+        st.rerun()
 
 # Investment Analysis Assumptions
 st.header("📊 Investment Analysis Assumptions")
