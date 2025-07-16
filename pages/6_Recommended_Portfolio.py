@@ -482,6 +482,27 @@ if portfolio_df is not None:
                         lambda x: st.session_state.asset_class_mapping.get(x, "")
                     )
                     
+                    # Reorder columns to have Allocation % as second column and APIR Code as third
+                    columns = detailed_with_allocations.columns.tolist()
+                    
+                    # Remove the columns we want to reorder
+                    if 'Allocation %' in columns:
+                        columns.remove('Allocation %')
+                    if 'APIR Code' in columns:
+                        columns.remove('APIR Code')
+                    
+                    # Create new column order: Name, Allocation %, APIR Code, then rest
+                    new_columns = []
+                    if 'Name' in columns:
+                        new_columns.append('Name')
+                        columns.remove('Name')
+                    
+                    new_columns.extend(['Allocation %', 'APIR Code'])
+                    new_columns.extend(columns)
+                    
+                    # Reorder the dataframe
+                    detailed_with_allocations = detailed_with_allocations[new_columns]
+                    
                     # Create a clean portfolio analysis sheet with separate sections
                     
                     # Section 1: Portfolio Funds with Allocations
