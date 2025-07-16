@@ -11,7 +11,7 @@ st.set_page_config(
 # Initialize strategic asset allocation in session state
 if 'strategic_asset_allocation' not in st.session_state:
     st.session_state.strategic_asset_allocation = {
-        'Asset Class': ['Cash', 'Fixed Interest', 'International Fixed Interest', 'Australian Shares', 'International Shares', 'Property', 'Alternatives'],
+        'Asset Class': ['Cash', 'Australian Fixed Interest', 'International Fixed Interest', 'Australian Equities', 'International Equities', 'Property', 'Alternatives'],
         'Type': ['Income', 'Income', 'Income', 'Growth', 'Growth', 'Income and Growth', 'Income and Growth'],
         'Defensive (100/0)': [70, 30, 0, 0, 0, 0, 0],
         'Conservative (80/20)': [20, 40, 20, 8, 6, 3, 3],
@@ -177,10 +177,10 @@ with st.expander("Strategic Asset Allocation Table", expanded=True):
                 # Reset to default values
                 defaults = {
                     'Cash': {'Defensive (100/0)': 70, 'Conservative (80/20)': 20, 'Moderate (60/40)': 15, 'Balanced (40/60)': 5, 'Growth (20/80)': 2, 'High Growth (0/100)': 2},
-                    'Fixed Interest': {'Defensive (100/0)': 30, 'Conservative (80/20)': 40, 'Moderate (60/40)': 30, 'Balanced (40/60)': 25, 'Growth (20/80)': 12, 'High Growth (0/100)': 0},
+                    'Australian Fixed Interest': {'Defensive (100/0)': 30, 'Conservative (80/20)': 40, 'Moderate (60/40)': 30, 'Balanced (40/60)': 25, 'Growth (20/80)': 12, 'High Growth (0/100)': 0},
                     'International Fixed Interest': {'Defensive (100/0)': 0, 'Conservative (80/20)': 20, 'Moderate (60/40)': 15, 'Balanced (40/60)': 10, 'Growth (20/80)': 6, 'High Growth (0/100)': 0},
-                    'Australian Shares': {'Defensive (100/0)': 0, 'Conservative (80/20)': 8, 'Moderate (60/40)': 18, 'Balanced (40/60)': 28, 'Growth (20/80)': 38, 'High Growth (0/100)': 48},
-                    'International Shares': {'Defensive (100/0)': 0, 'Conservative (80/20)': 6, 'Moderate (60/40)': 12, 'Balanced (40/60)': 20, 'Growth (20/80)': 26, 'High Growth (0/100)': 34},
+                    'Australian Equities': {'Defensive (100/0)': 0, 'Conservative (80/20)': 8, 'Moderate (60/40)': 18, 'Balanced (40/60)': 28, 'Growth (20/80)': 38, 'High Growth (0/100)': 48},
+                    'International Equities': {'Defensive (100/0)': 0, 'Conservative (80/20)': 6, 'Moderate (60/40)': 12, 'Balanced (40/60)': 20, 'Growth (20/80)': 26, 'High Growth (0/100)': 34},
                     'Property': {'Defensive (100/0)': 0, 'Conservative (80/20)': 3, 'Moderate (60/40)': 5, 'Balanced (40/60)': 6, 'Growth (20/80)': 8, 'High Growth (0/100)': 8},
                     'Alternatives': {'Defensive (100/0)': 0, 'Conservative (80/20)': 3, 'Moderate (60/40)': 5, 'Balanced (40/60)': 6, 'Growth (20/80)': 8, 'High Growth (0/100)': 8}
                 }
@@ -213,7 +213,7 @@ with st.expander("Strategic Asset Allocation Table", expanded=True):
     # Reset all button
     if st.button("Reset All to Defaults"):
         st.session_state.strategic_asset_allocation = {
-            'Asset Class': ['Cash', 'Fixed Interest', 'International Fixed Interest', 'Australian Shares', 'International Shares', 'Property', 'Alternatives'],
+            'Asset Class': ['Cash', 'Australian Fixed Interest', 'International Fixed Interest', 'Australian Equities', 'International Equities', 'Property', 'Alternatives'],
             'Type': ['Income', 'Income', 'Income', 'Growth', 'Growth', 'Income and Growth', 'Income and Growth'],
             'Defensive (100/0)': [70, 30, 0, 0, 0, 0, 0],
             'Conservative (80/20)': [20, 40, 20, 8, 6, 3, 3],
