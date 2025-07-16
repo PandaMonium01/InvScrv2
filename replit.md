@@ -51,6 +51,10 @@ Preferred communication style: Simple, everyday language.
 - **Purpose**: Manage and export selected investment portfolios
 - **Features**: Portfolio editing, comments, CSV export functionality
 
+### 6. Assumptions (`pages/7_Assumptions.py`)
+- **Purpose**: Document methodology and provide configurable strategic asset allocation settings
+- **Features**: Interactive Strategic Asset Allocation table with 6 risk profiles and editable default values
+
 ## Data Flow
 
 1. **Data Import**: CSV files → validation → processing → session state storage
