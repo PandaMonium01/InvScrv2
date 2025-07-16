@@ -444,12 +444,17 @@ if portfolio_df is not None:
     # Download portfolio with allocations and comprehensive data
     st.subheader("Download Portfolio Report")
     
+    # Initialize session state for excel data
+    if 'excel_data' not in st.session_state:
+        st.session_state.excel_data = None
+    
     # Create comprehensive Excel file with multiple sheets
     if st.button("Download Portfolio Report"):
-        # Create an Excel file with multiple sheets
-        output = io.BytesIO()
-        
-        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        with st.spinner("Generating portfolio report..."):
+            # Create an Excel file with multiple sheets
+            output = io.BytesIO()
+            
+            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
             # Sheet 1: All Formula Filtered Data
             if st.session_state.filtered_selection is not None and not st.session_state.filtered_selection.empty:
                 st.session_state.filtered_selection.to_excel(writer, sheet_name='All Formula Filtered Data', index=False)
@@ -630,18 +635,26 @@ if portfolio_df is not None:
                 # Fallback if no main data available
                 portfolio_with_allocations.to_excel(writer, sheet_name='Portfolio Analysis', index=False)
         
-        # Prepare the file for download
-        output.seek(0)
-        excel_data = output.read()
-        
+            # Prepare the file for download
+            output.seek(0)
+            st.session_state.excel_data = output.read()
+            
+            st.success("Portfolio report generated successfully! The Excel file contains two sheets: 'All Formula Filtered Data' and 'Portfolio Analysis'.")
+            st.rerun()  # Refresh to show the download button
+    
+    # Show download button if excel data is available
+    if st.session_state.excel_data is not None:
         st.download_button(
-            label="Download Portfolio Report (Excel)",
-            data=excel_data,
+            label="📥 Download Portfolio Report (Excel)",
+            data=st.session_state.excel_data,
             file_name="recommended_portfolio_report.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
         
-        st.success("Portfolio report generated successfully! The Excel file contains two sheets: 'All Formula Filtered Data' and 'Portfolio Analysis'.")
+        # Clear the excel data after download button is shown
+        if st.button("Generate New Report"):
+            st.session_state.excel_data = None
+            st.rerun()
     
     # Optional: Also provide CSV download
     st.subheader("Alternative Download Options")
