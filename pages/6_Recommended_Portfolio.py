@@ -183,6 +183,201 @@ if portfolio_df is not None:
         else:
             st.info("📝 Allocation in progress")
     
+    # Portfolio Asset Class Allocation Analysis
+    st.header("Portfolio Asset Class Allocation")
+    
+    # Initialize asset class mapping in session state if needed
+    if 'asset_class_mapping' not in st.session_state:
+        st.session_state.asset_class_mapping = {}
+    
+    if not st.session_state.recommended_portfolio:
+        st.info("Add funds to your portfolio to see asset class allocation analysis")
+    else:
+        # Get detailed fund data for asset class analysis
+        if st.session_state.combined_data is not None and not st.session_state.combined_data.empty:
+            portfolio_apirs = list(st.session_state.recommended_portfolio.keys())
+            detailed_portfolio = st.session_state.combined_data[
+                st.session_state.combined_data['APIR Code'].isin(portfolio_apirs)
+            ]
+            
+            if not detailed_portfolio.empty:
+                # Asset class options
+                asset_classes = [
+                    'Cash', 
+                    'Australian Fixed Interest', 
+                    'International Fixed Interest', 
+                    'Australian Equities', 
+                    'International Equities', 
+                    'Property', 
+                    'Alternatives'
+                ]
+                
+                # Create mapping interface
+                st.subheader("Asset Class Mapping")
+                st.write("Map each fund's Morningstar Category to an asset class:")
+                
+                # Create columns for the mapping table
+                map_cols = st.columns([3, 2, 2, 1])
+                with map_cols[0]:
+                    st.write("**Fund Name**")
+                with map_cols[1]:
+                    st.write("**Morningstar Category**")
+                with map_cols[2]:
+                    st.write("**Asset Class**")
+                with map_cols[3]:
+                    st.write("**Allocation**")
+                
+                st.markdown("---")
+                
+                # Calculate portfolio asset class allocations
+                asset_class_allocations = {ac: 0.0 for ac in asset_classes}
+                total_allocated = 0.0
+                
+                for apir in portfolio_apirs:
+                    fund_data = detailed_portfolio[detailed_portfolio['APIR Code'] == apir]
+                    if not fund_data.empty:
+                        fund_row = fund_data.iloc[0]
+                        fund_name = fund_row.get('Name', 'Unknown')
+                        morningstar_category = fund_row.get('Morningstar Category', 'Unknown')
+                        
+                        # Get allocation percentage
+                        allocation = st.session_state.portfolio_allocations.get(apir, "")
+                        allocation_pct = 0.0
+                        if allocation and allocation != "":
+                            try:
+                                allocation_pct = float(allocation)
+                                total_allocated += allocation_pct
+                            except (ValueError, TypeError):
+                                allocation_pct = 0.0
+                        
+                        # Create mapping row
+                        map_row_cols = st.columns([3, 2, 2, 1])
+                        
+                        with map_row_cols[0]:
+                            st.write(fund_name[:50] + "..." if len(fund_name) > 50 else fund_name)
+                        
+                        with map_row_cols[1]:
+                            st.write(morningstar_category)
+                        
+                        with map_row_cols[2]:
+                            # Asset class dropdown
+                            current_mapping = st.session_state.asset_class_mapping.get(apir, asset_classes[0])
+                            selected_asset_class = st.selectbox(
+                                f"Asset class for {apir}",
+                                asset_classes,
+                                index=asset_classes.index(current_mapping) if current_mapping in asset_classes else 0,
+                                key=f"asset_class_{apir}",
+                                label_visibility="collapsed"
+                            )
+                            st.session_state.asset_class_mapping[apir] = selected_asset_class
+                        
+                        with map_row_cols[3]:
+                            st.write(f"{allocation_pct:.1f}%")
+                        
+                        # Add to asset class total
+                        if selected_asset_class in asset_class_allocations:
+                            asset_class_allocations[selected_asset_class] += allocation_pct
+                
+                st.markdown("---")
+                
+                # Portfolio vs Target Allocation Analysis
+                st.subheader("Portfolio vs Target Allocation")
+                
+                # Get target allocation from assumptions page (use Balanced as default)
+                target_profile = st.selectbox(
+                    "Select target risk profile for comparison:",
+                    ['Defensive (100/0)', 'Conservative (80/20)', 'Moderate (60/40)', 'Balanced (40/60)', 'Growth (20/80)', 'High Growth (0/100)'],
+                    index=3,  # Default to Balanced
+                    key="target_profile_select"
+                )
+                
+                # Get target allocations from assumptions page
+                if 'strategic_asset_allocation' in st.session_state:
+                    target_allocations = {}
+                    asset_class_names = st.session_state.strategic_asset_allocation['Asset Class']
+                    target_values = st.session_state.strategic_asset_allocation[target_profile]
+                    
+                    # Map assumption page asset classes to our asset classes
+                    asset_class_mapping = {
+                        'Cash': 'Cash',
+                        'Fixed Interest': 'Australian Fixed Interest',
+                        'International Fixed Interest': 'International Fixed Interest',
+                        'Australian Shares': 'Australian Equities',
+                        'International Shares': 'International Equities',
+                        'Property': 'Property',
+                        'Alternatives': 'Alternatives'
+                    }
+                    
+                    for i, assumption_asset_class in enumerate(asset_class_names):
+                        mapped_class = asset_class_mapping.get(assumption_asset_class, assumption_asset_class)
+                        if mapped_class in target_allocations:
+                            target_allocations[mapped_class] += target_values[i]
+                        else:
+                            target_allocations[mapped_class] = target_values[i]
+                else:
+                    # Default target allocations if assumptions not available
+                    target_allocations = {
+                        'Cash': 5,
+                        'Australian Fixed Interest': 25,
+                        'International Fixed Interest': 10,
+                        'Australian Equities': 28,
+                        'International Equities': 20,
+                        'Property': 6,
+                        'Alternatives': 6
+                    }
+                
+                # Display allocation comparison
+                comparison_cols = st.columns([2, 1, 1, 1])
+                with comparison_cols[0]:
+                    st.write("**Asset Class**")
+                with comparison_cols[1]:
+                    st.write("**Portfolio %**")
+                with comparison_cols[2]:
+                    st.write("**Target %**")
+                with comparison_cols[3]:
+                    st.write("**Variance**")
+                
+                st.markdown("---")
+                
+                for asset_class in asset_classes:
+                    portfolio_pct = asset_class_allocations.get(asset_class, 0.0)
+                    target_pct = target_allocations.get(asset_class, 0.0)
+                    variance = portfolio_pct - target_pct
+                    
+                    comp_row_cols = st.columns([2, 1, 1, 1])
+                    with comp_row_cols[0]:
+                        st.write(asset_class)
+                    with comp_row_cols[1]:
+                        st.write(f"{portfolio_pct:.1f}%")
+                    with comp_row_cols[2]:
+                        st.write(f"{target_pct:.1f}%")
+                    with comp_row_cols[3]:
+                        if variance > 0:
+                            st.write(f"+{variance:.1f}%", help="Over-allocated")
+                        elif variance < 0:
+                            st.write(f"{variance:.1f}%", help="Under-allocated")
+                        else:
+                            st.write("0.0%")
+                
+                # Summary metrics
+                st.markdown("---")
+                summary_cols = st.columns(3)
+                with summary_cols[0]:
+                    st.metric("Total Allocated", f"{total_allocated:.1f}%")
+                with summary_cols[1]:
+                    total_variance = sum(abs(asset_class_allocations[ac] - target_allocations.get(ac, 0)) for ac in asset_classes)
+                    st.metric("Total Absolute Variance", f"{total_variance:.1f}%")
+                with summary_cols[2]:
+                    if total_allocated > 0:
+                        tracking_error = (total_variance / len(asset_classes))
+                        st.metric("Average Tracking Error", f"{tracking_error:.1f}%")
+                    else:
+                        st.metric("Average Tracking Error", "N/A")
+            else:
+                st.warning("Unable to retrieve detailed fund data for asset class analysis")
+        else:
+            st.info("No data available for asset class analysis")
+    
     # Calculate portfolio-level metrics
     st.header("Portfolio Metrics")
     
