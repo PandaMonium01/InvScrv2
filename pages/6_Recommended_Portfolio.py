@@ -272,46 +272,54 @@ if portfolio_df is not None:
                     help="Select a risk profile to compare your portfolio allocation against the strategic target allocation"
                 )
                 
+                # Force rerun when profile changes
+                if 'previous_target_profile' not in st.session_state:
+                    st.session_state.previous_target_profile = target_profile
+                elif st.session_state.previous_target_profile != target_profile:
+                    st.session_state.previous_target_profile = target_profile
+                    st.rerun()
+                
+                # Initialize session state for strategic asset allocation if not present
+                if 'strategic_asset_allocation' not in st.session_state:
+                    st.session_state.strategic_asset_allocation = {
+                        'Asset Class': ['Cash', 'Fixed Interest', 'International Fixed Interest', 'Australian Shares', 'International Shares', 'Property', 'Alternatives'],
+                        'Type': ['Income', 'Income', 'Income', 'Growth', 'Growth', 'Income and Growth', 'Income and Growth'],
+                        'Defensive (100/0)': [70, 30, 0, 0, 0, 0, 0],
+                        'Conservative (80/20)': [20, 40, 20, 8, 6, 3, 3],
+                        'Moderate (60/40)': [15, 30, 15, 18, 12, 5, 5],
+                        'Balanced (40/60)': [5, 25, 10, 28, 20, 6, 6],
+                        'Growth (20/80)': [2, 12, 6, 38, 26, 8, 8],
+                        'High Growth (0/100)': [2, 0, 0, 48, 34, 8, 8]
+                    }
+                
                 # Get target allocations from assumptions page
                 target_allocations = {}
-                if 'strategic_asset_allocation' in st.session_state:
-                    asset_class_names = st.session_state.strategic_asset_allocation['Asset Class']
+                asset_class_names = st.session_state.strategic_asset_allocation['Asset Class']
+                
+                # Get target values for the selected profile
+                if target_profile in st.session_state.strategic_asset_allocation:
+                    target_values = st.session_state.strategic_asset_allocation[target_profile]
                     
-                    # Get target values for the selected profile
-                    if target_profile in st.session_state.strategic_asset_allocation:
-                        target_values = st.session_state.strategic_asset_allocation[target_profile]
-                        
-                        # Map assumption page asset classes to our asset classes
-                        asset_class_mapping = {
-                            'Cash': 'Cash',
-                            'Fixed Interest': 'Australian Fixed Interest',
-                            'International Fixed Interest': 'International Fixed Interest',
-                            'Australian Shares': 'Australian Equities',
-                            'International Shares': 'International Equities',
-                            'Property': 'Property',
-                            'Alternatives': 'Alternatives'
-                        }
-                        
-                        # Build target allocations dictionary
-                        for i, assumption_asset_class in enumerate(asset_class_names):
-                            mapped_class = asset_class_mapping.get(assumption_asset_class, assumption_asset_class)
-                            if mapped_class in target_allocations:
-                                target_allocations[mapped_class] += target_values[i]
-                            else:
-                                target_allocations[mapped_class] = target_values[i]
-                    else:
-                        # Fallback if profile not found
-                        target_allocations = {
-                            'Cash': 5,
-                            'Australian Fixed Interest': 25,
-                            'International Fixed Interest': 10,
-                            'Australian Equities': 28,
-                            'International Equities': 20,
-                            'Property': 6,
-                            'Alternatives': 6
-                        }
+                    # Map assumption page asset classes to our asset classes
+                    asset_class_mapping = {
+                        'Cash': 'Cash',
+                        'Fixed Interest': 'Australian Fixed Interest',
+                        'International Fixed Interest': 'International Fixed Interest',
+                        'Australian Shares': 'Australian Equities',
+                        'International Shares': 'International Equities',
+                        'Property': 'Property',
+                        'Alternatives': 'Alternatives'
+                    }
+                    
+                    # Build target allocations dictionary
+                    for i, assumption_asset_class in enumerate(asset_class_names):
+                        mapped_class = asset_class_mapping.get(assumption_asset_class, assumption_asset_class)
+                        if mapped_class in target_allocations:
+                            target_allocations[mapped_class] += target_values[i]
+                        else:
+                            target_allocations[mapped_class] = target_values[i]
                 else:
-                    # Default target allocations if assumptions not available
+                    # Fallback if profile not found
                     target_allocations = {
                         'Cash': 5,
                         'Australian Fixed Interest': 25,
