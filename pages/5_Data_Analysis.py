@@ -7,7 +7,8 @@ from utils.visualization import (
     create_fee_distribution_chart,
     create_performance_risk_chart,
     create_category_comparison_chart,
-    create_portfolio_comparison_chart
+    create_portfolio_comparison_chart,
+    create_multi_metric_comparison_chart
 )
 
 # Set page configuration
@@ -335,65 +336,86 @@ with tabs[0]:
         # Additional Analysis Section
         st.header("Additional Analysis")
         
-        # Summary statistics table
-        st.subheader("Summary Statistics")
-        if not reordered_df.empty:
-            # Calculate summary statistics for key numeric columns
-            numeric_columns = ['3 Years Annualised (%)', 'Investment Management Fee(%)', 
-                             '3 Year Beta', '3 Year Standard Deviation', '3 Year Sharpe Ratio']
+        # Category averages table for all numerical columns
+        st.subheader("Category Averages - All Numerical Columns")
+        if not reordered_df.empty and 'Morningstar Category' in reordered_df.columns:
+            # Get all numerical columns from the data
+            numerical_cols = reordered_df.select_dtypes(include=[np.number]).columns.tolist()
             
-            # Filter to only columns that exist in the data
-            available_numeric = [col for col in numeric_columns if col in reordered_df.columns]
+            # Remove non-investment data columns if they exist
+            exclude_cols = ['Select']  # Add any other columns to exclude
+            numerical_cols = [col for col in numerical_cols if col not in exclude_cols]
             
-            if available_numeric:
-                summary_stats = reordered_df[available_numeric].describe()
-                st.dataframe(summary_stats, use_container_width=True)
+            if numerical_cols:
+                # Calculate averages by category
+                category_averages = reordered_df.groupby('Morningstar Category')[numerical_cols].mean()
                 
-                # Download summary statistics
-                summary_csv = summary_stats.to_csv()
+                # Round to 2 decimal places for better display
+                category_averages = category_averages.round(2)
+                
+                # Display the table
+                st.dataframe(category_averages, use_container_width=True)
+                
+                # Add count of investments per category
+                st.subheader("Investment Count by Category")
+                category_counts = reordered_df['Morningstar Category'].value_counts().sort_index()
+                count_df = pd.DataFrame({
+                    'Category': category_counts.index,
+                    'Number of Investments': category_counts.values
+                })
+                st.dataframe(count_df, use_container_width=True)
+                
+                # Download category averages
+                category_csv = category_averages.to_csv()
                 st.download_button(
-                    label="Download Summary Statistics",
-                    data=summary_csv,
-                    file_name="summary_statistics.csv",
+                    label="Download Category Averages",
+                    data=category_csv,
+                    file_name="category_averages_all_columns.csv",
                     mime="text/csv",
                 )
+            else:
+                st.info("No numerical columns found in the data for category analysis")
+        else:
+            st.info("No category data available or data is empty")
         
         # Visualization section
-        st.subheader("Data Visualizations")
+        st.subheader("Category Comparison Charts")
         
-        if not reordered_df.empty and len(available_numeric) > 0:
-            # Create column layout for charts
-            col1, col2 = st.columns(2)
+        if not reordered_df.empty and numerical_cols and 'Morningstar Category' in reordered_df.columns:
+            # Create visualizations for key metrics
+            key_metrics = ['3 Years Annualised (%)', 'Investment Management Fee(%)', 
+                          '3 Year Beta', '3 Year Standard Deviation', '3 Year Sharpe Ratio']
             
-            with col1:
-                # Distribution of Investment Management Fees
-                if 'Investment Management Fee(%)' in reordered_df.columns:
-                    fig_fee = create_fee_distribution_chart(reordered_df)
-                    st.plotly_chart(fig_fee, use_container_width=True)
+            # Filter to available key metrics
+            available_key_metrics = [col for col in key_metrics if col in numerical_cols]
             
-            with col2:
-                # Performance vs Risk scatter plot
-                if '3 Years Annualised (%)' in reordered_df.columns and '3 Year Standard Deviation' in reordered_df.columns:
-                    fig_perf_risk = create_performance_risk_chart(reordered_df)
-                    st.plotly_chart(fig_perf_risk, use_container_width=True)
-            
-            # Category comparison chart
-            if 'Morningstar Category' in reordered_df.columns and len(available_numeric) > 0:
-                st.subheader("Category Comparison")
-                fig_category = create_category_comparison_chart(reordered_df, available_numeric)
-                st.plotly_chart(fig_category, use_container_width=True)
+            if available_key_metrics:
+                # Create multiple bar charts in a grid layout
+                cols = st.columns(2)
+                
+                for i, metric in enumerate(available_key_metrics):
+                    with cols[i % 2]:
+                        # Create individual bar chart for each metric
+                        fig_metric = create_category_comparison_chart(reordered_df, [metric])
+                        st.plotly_chart(fig_metric, use_container_width=True)
+                
+                # Create a comprehensive comparison chart with multiple metrics
+                if len(available_key_metrics) > 1:
+                    st.subheader("Multi-Metric Category Comparison")
+                    fig_multi = create_multi_metric_comparison_chart(category_averages, available_key_metrics)
+                    st.plotly_chart(fig_multi, use_container_width=True)
             
             # Selected vs All comparison
-            if st.session_state.recommended_portfolio:
+            if st.session_state.recommended_portfolio and len(st.session_state.recommended_portfolio) > 0:
                 st.subheader("Selected Portfolio vs All Funds")
                 selected_apirs = list(st.session_state.recommended_portfolio.keys())
                 selected_funds = reordered_df[reordered_df['APIR Code'].isin(selected_apirs)]
                 
-                if not selected_funds.empty:
-                    fig_comparison = create_portfolio_comparison_chart(reordered_df, selected_funds, available_numeric)
+                if not selected_funds.empty and available_key_metrics:
+                    fig_comparison = create_portfolio_comparison_chart(reordered_df, selected_funds, available_key_metrics)
                     st.plotly_chart(fig_comparison, use_container_width=True)
         else:
-            st.info("No numeric data available for visualization")
+            st.info("No numerical data or category data available for visualization")
     else:
         st.info("No data available to display")
 

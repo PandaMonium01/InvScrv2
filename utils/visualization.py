@@ -611,3 +611,64 @@ def create_portfolio_comparison_chart(all_funds, selected_funds, numeric_columns
             height=400,
             margin=dict(l=50, r=50, t=80, b=50)
         )
+
+def create_multi_metric_comparison_chart(category_averages, metrics):
+    """
+    Create a comprehensive chart showing multiple metrics across categories.
+    
+    Parameters:
+    category_averages (DataFrame): DataFrame with category averages
+    metrics (list): List of metrics to display
+    
+    Returns:
+    Figure: Plotly figure object
+    """
+    if category_averages is None or category_averages.empty or not metrics:
+        return go.Figure().update_layout(
+            title="No data available for multi-metric comparison",
+            height=400,
+            margin=dict(l=50, r=50, t=80, b=50)
+        )
+    
+    try:
+        # Create subplots for each metric
+        fig = make_subplots(
+            rows=len(metrics), 
+            cols=1,
+            subplot_titles=metrics,
+            shared_xaxes=True,
+            vertical_spacing=0.08
+        )
+        
+        # Add a bar chart for each metric
+        for i, metric in enumerate(metrics):
+            if metric in category_averages.columns:
+                fig.add_trace(
+                    go.Bar(
+                        x=category_averages.index,
+                        y=category_averages[metric],
+                        name=metric,
+                        showlegend=False
+                    ),
+                    row=i+1, col=1
+                )
+        
+        # Update layout
+        fig.update_layout(
+            title="Multi-Metric Category Comparison",
+            height=300 * len(metrics),
+            margin=dict(l=50, r=50, t=80, b=50)
+        )
+        
+        # Update x-axis for the last subplot
+        fig.update_xaxes(tickangle=-45, row=len(metrics), col=1)
+        
+        return fig
+        
+    except Exception as e:
+        print(f"Error creating multi-metric comparison chart: {str(e)}")
+        return go.Figure().update_layout(
+            title="Error creating multi-metric comparison chart",
+            height=400,
+            margin=dict(l=50, r=50, t=80, b=50)
+        )
