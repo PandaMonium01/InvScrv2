@@ -230,9 +230,10 @@ with tabs[0]:
             # If required columns aren't available, add empty column
             selection_df['Composite Score'] = None
         
-        # Define the column order with "Select" first and the new calculation last
+        # Define the column order with "Select" first, then "Composite Score", then the rest
         ordered_columns = [
             'Select',
+            'Composite Score',
             'Name',
             'APIR Code',
             'Morningstar Category',
@@ -252,7 +253,7 @@ with tabs[0]:
         ordered_columns = [col for col in ordered_columns if col in existing_columns]
         
         # Add any remaining columns that weren't specified in the order (except the special columns)
-        special_columns = ['Select', 'Category Avg Beta - Fund Beta', 'Fund Sharpe - Category Avg Sharpe', 'Fund StdDev - Category Avg StdDev', 'Composite Score']
+        special_columns = ['Select', 'Composite Score', 'Category Avg Beta - Fund Beta', 'Fund Sharpe - Category Avg Sharpe', 'Fund StdDev - Category Avg StdDev']
         remaining_columns = [col for col in existing_columns 
                              if col not in ordered_columns 
                              and col not in special_columns]
@@ -267,8 +268,6 @@ with tabs[0]:
             final_column_order.append('Fund Sharpe - Category Avg Sharpe')
         if 'Fund StdDev - Category Avg StdDev' in existing_columns:
             final_column_order.append('Fund StdDev - Category Avg StdDev')
-        if 'Composite Score' in existing_columns:
-            final_column_order.append('Composite Score')
         
         # Reorder the dataframe columns
         reordered_df = selection_df[final_column_order].copy()
