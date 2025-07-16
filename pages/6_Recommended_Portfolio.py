@@ -179,6 +179,82 @@ if portfolio_df is not None:
         else:
             st.info("📝 Allocation in progress")
     
+    # Calculate portfolio-level metrics
+    st.header("Portfolio Metrics")
+    
+    # Get detailed fund data for metric calculations
+    portfolio_metrics = None
+    if st.session_state.combined_data is not None and not st.session_state.combined_data.empty:
+        portfolio_apirs = list(st.session_state.recommended_portfolio.keys())
+        detailed_portfolio = st.session_state.combined_data[
+            st.session_state.combined_data['APIR Code'].isin(portfolio_apirs)
+        ]
+        
+        if not detailed_portfolio.empty:
+            # Calculate weighted portfolio metrics
+            weighted_stddev = 0.0
+            weighted_beta = 0.0
+            weighted_sharpe = 0.0
+            weighted_mer = 0.0
+            total_weight = 0.0
+            
+            for apir in portfolio_apirs:
+                allocation = st.session_state.portfolio_allocations.get(apir, "")
+                if allocation and allocation != "":
+                    try:
+                        weight = float(allocation) / 100.0  # Convert percentage to decimal
+                        fund_data = detailed_portfolio[detailed_portfolio['APIR Code'] == apir]
+                        
+                        if not fund_data.empty:
+                            fund_row = fund_data.iloc[0]
+                            
+                            # Get metrics, handle NaN values
+                            stddev = fund_row.get('3 Year Standard Deviation', 0)
+                            beta = fund_row.get('3 Year Beta', 0)
+                            sharpe = fund_row.get('3 Year Sharpe Ratio', 0)
+                            mer = fund_row.get('Investment Management Fee(%)', 0)
+                            
+                            # Only include in calculation if values are not NaN
+                            if pd.notna(stddev):
+                                weighted_stddev += weight * float(stddev)
+                            if pd.notna(beta):
+                                weighted_beta += weight * float(beta)
+                            if pd.notna(sharpe):
+                                weighted_sharpe += weight * float(sharpe)
+                            if pd.notna(mer):
+                                weighted_mer += weight * float(mer)
+                            
+                            total_weight += weight
+                    except (ValueError, TypeError):
+                        continue
+            
+            # Display portfolio metrics
+            if total_weight > 0:
+                col1, col2, col3, col4 = st.columns(4)
+                
+                with col1:
+                    st.metric("Portfolio StdDev", f"{weighted_stddev:.2f}")
+                
+                with col2:
+                    st.metric("Portfolio Beta", f"{weighted_beta:.2f}")
+                
+                with col3:
+                    st.metric("Portfolio Sharpe Ratio", f"{weighted_sharpe:.2f}")
+                
+                with col4:
+                    st.metric("Portfolio MER", f"{weighted_mer:.2f}%")
+                
+                # Show allocation coverage
+                coverage_pct = total_weight * 100
+                if coverage_pct < 100:
+                    st.info(f"Portfolio metrics calculated based on {coverage_pct:.1f}% of allocated funds")
+            else:
+                st.info("Portfolio metrics will be calculated when allocations are set")
+        else:
+            st.warning("Unable to retrieve detailed fund data for portfolio metrics")
+    else:
+        st.info("No data available for portfolio metric calculations")
+    
     # Download portfolio with allocations
     portfolio_with_allocations = portfolio_df.copy()
     portfolio_with_allocations['Allocation %'] = portfolio_with_allocations['APIR Code'].map(
