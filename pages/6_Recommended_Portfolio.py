@@ -482,18 +482,16 @@ if portfolio_df is not None:
                         lambda x: st.session_state.asset_class_mapping.get(x, "")
                     )
                     
-                    # Add empty rows for spacing
-                    portfolio_sheet_data.append(pd.DataFrame([['=== PORTFOLIO FUNDS ==='] + [''] * (len(detailed_with_allocations.columns) - 1)], 
-                                                           columns=detailed_with_allocations.columns))
-                    portfolio_sheet_data.append(detailed_with_allocations)
+                    # Create a clean portfolio analysis sheet with separate sections
                     
-                    # Add portfolio metrics
-                    portfolio_sheet_data.append(pd.DataFrame([[''] * len(detailed_with_allocations.columns)], 
-                                                           columns=detailed_with_allocations.columns))
-                    portfolio_sheet_data.append(pd.DataFrame([['=== PORTFOLIO METRICS ==='] + [''] * (len(detailed_with_allocations.columns) - 1)], 
-                                                           columns=detailed_with_allocations.columns))
+                    # Section 1: Portfolio Funds with Allocations
+                    portfolio_funds_section = detailed_with_allocations.copy()
+                    portfolio_funds_section.to_excel(writer, sheet_name='Portfolio Analysis', index=False, startrow=0)
                     
-                    # Calculate portfolio metrics
+                    # Get the starting row for the next section
+                    current_row = len(portfolio_funds_section) + 3
+                    
+                    # Section 2: Portfolio Metrics
                     total_weight = 0.0
                     weighted_return = 0.0
                     weighted_stddev = 0.0
@@ -532,25 +530,20 @@ if portfolio_df is not None:
                             except (ValueError, TypeError):
                                 continue
                     
-                    # Create metrics dataframe
+                    # Create metrics dataframe with clean structure
                     metrics_data = pd.DataFrame([
-                        ['Portfolio 3Yr Return (%)', f"{weighted_return:.2f}"] + [''] * (len(detailed_with_allocations.columns) - 2),
-                        ['Portfolio Standard Deviation', f"{weighted_stddev:.2f}"] + [''] * (len(detailed_with_allocations.columns) - 2),
-                        ['Portfolio Beta', f"{weighted_beta:.2f}"] + [''] * (len(detailed_with_allocations.columns) - 2),
-                        ['Portfolio Sharpe Ratio', f"{weighted_sharpe:.2f}"] + [''] * (len(detailed_with_allocations.columns) - 2),
-                        ['Portfolio MER (%)', f"{weighted_mer:.2f}"] + [''] * (len(detailed_with_allocations.columns) - 2),
-                        ['Total Portfolio Weight (%)', f"{total_weight * 100:.1f}"] + [''] * (len(detailed_with_allocations.columns) - 2)
-                    ], columns=detailed_with_allocations.columns)
+                        ['Portfolio 3Yr Return (%)', f"{weighted_return:.2f}"],
+                        ['Portfolio Standard Deviation', f"{weighted_stddev:.2f}"],
+                        ['Portfolio Beta', f"{weighted_beta:.2f}"],
+                        ['Portfolio Sharpe Ratio', f"{weighted_sharpe:.2f}"],
+                        ['Portfolio MER (%)', f"{weighted_mer:.2f}"],
+                        ['Total Portfolio Weight (%)', f"{total_weight * 100:.1f}"]
+                    ], columns=['Metric', 'Value'])
                     
-                    portfolio_sheet_data.append(metrics_data)
+                    metrics_data.to_excel(writer, sheet_name='Portfolio Analysis', index=False, startrow=current_row)
+                    current_row += len(metrics_data) + 3
                     
-                    # Add asset class allocation analysis
-                    portfolio_sheet_data.append(pd.DataFrame([[''] * len(detailed_with_allocations.columns)], 
-                                                           columns=detailed_with_allocations.columns))
-                    portfolio_sheet_data.append(pd.DataFrame([['=== ASSET CLASS ALLOCATION ANALYSIS ==='] + [''] * (len(detailed_with_allocations.columns) - 1)], 
-                                                           columns=detailed_with_allocations.columns))
-                    
-                    # Calculate asset class allocations
+                    # Section 3: Asset Class Allocation Analysis
                     asset_classes = ['Cash', 'Australian Fixed Interest', 'International Fixed Interest', 
                                    'Australian Equities', 'International Equities', 'Property', 'Alternatives']
                     asset_class_allocations = {ac: 0.0 for ac in asset_classes}
@@ -603,16 +596,12 @@ if portfolio_df is not None:
                         portfolio_pct = asset_class_allocations.get(asset_class, 0.0)
                         target_pct = target_allocations.get(asset_class, 0.0)
                         variance = portfolio_pct - target_pct
-                        allocation_comparison.append([asset_class, f"{portfolio_pct:.1f}%", f"{target_pct:.1f}%", f"{variance:+.1f}%"])
+                        allocation_comparison.append([asset_class, portfolio_pct, target_pct, variance])
                     
                     allocation_df = pd.DataFrame(allocation_comparison, 
                                                columns=['Asset Class', 'Portfolio %', 'Target %', 'Variance'])
                     
-                    portfolio_sheet_data.append(allocation_df)
-                    
-                    # Combine all portfolio data
-                    portfolio_combined = pd.concat(portfolio_sheet_data, ignore_index=True)
-                    portfolio_combined.to_excel(writer, sheet_name='Portfolio Analysis', index=False)
+                    allocation_df.to_excel(writer, sheet_name='Portfolio Analysis', index=False, startrow=current_row)
                 else:
                     # Fallback if no detailed data available
                     portfolio_with_allocations.to_excel(writer, sheet_name='Portfolio Analysis', index=False)
