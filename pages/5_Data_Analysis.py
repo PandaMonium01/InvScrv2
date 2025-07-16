@@ -125,7 +125,13 @@ with tabs[0]:
                     category = row['Morningstar Category']
                     if category in category_betas:
                         category_avg = category_betas[category]
-                        return category_avg - row['3 Year Beta']
+                        fund_beta = row['3 Year Beta']
+                        
+                        # Debug info for ACM3679AU
+                        if row.get('APIR Code') == 'ACM3679AU':
+                            print(f"DEBUG - ACM3679AU: Category={category}, Category Avg={category_avg}, Fund Beta={fund_beta}, Diff={category_avg - fund_beta}")
+                        
+                        return category_avg - fund_beta
                     return None
                 
                 # Apply the function to create the new column
