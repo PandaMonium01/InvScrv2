@@ -439,19 +439,21 @@ with tabs[0]:
 with tabs[1]:
     st.header("Category Averages")
     
-    if st.session_state.asset_class_averages is not None:
-        st.dataframe(st.session_state.asset_class_averages, use_container_width=True)
+    # Use filtered data averages instead of full dataset averages
+    if current_data_averages is not None:
+        st.info(f"Category averages calculated from {data_status.lower()} ({len(display_data)} funds)")
+        st.dataframe(current_data_averages, use_container_width=True)
         
         # Create visualization for Morningstar Category averages
-        fig = create_asset_class_chart(st.session_state.asset_class_averages)
+        fig = create_asset_class_chart(current_data_averages)
         st.plotly_chart(fig, use_container_width=True)
         
         # Export category averages
-        csv_averages = st.session_state.asset_class_averages.to_csv()
+        csv_averages = current_data_averages.to_csv()
         st.download_button(
-            label="Download Category Averages",
+            label="Download Category Averages (Filtered Data)",
             data=csv_averages,
-            file_name="category_averages.csv",
+            file_name="category_averages_filtered.csv",
             mime="text/csv",
         )
     else:
