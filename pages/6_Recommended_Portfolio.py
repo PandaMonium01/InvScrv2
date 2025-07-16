@@ -276,27 +276,48 @@ if portfolio_df is not None:
                 if 'strategic_asset_allocation' in st.session_state:
                     target_allocations = {}
                     asset_class_names = st.session_state.strategic_asset_allocation['Asset Class']
-                    target_values = st.session_state.strategic_asset_allocation[target_profile]
                     
-                    # Map assumption page asset classes to our asset classes
-                    asset_class_mapping = {
-                        'Cash': 'Cash',
-                        'Fixed Interest': 'Australian Fixed Interest',
-                        'International Fixed Interest': 'International Fixed Interest',
-                        'Australian Shares': 'Australian Equities',
-                        'International Shares': 'International Equities',
-                        'Property': 'Property',
-                        'Alternatives': 'Alternatives'
-                    }
+                    # Debug: Show what profile is selected
+                    st.write(f"Debug: Selected profile: {target_profile}")
                     
-                    for i, assumption_asset_class in enumerate(asset_class_names):
-                        mapped_class = asset_class_mapping.get(assumption_asset_class, assumption_asset_class)
-                        if mapped_class in target_allocations:
-                            target_allocations[mapped_class] += target_values[i]
-                        else:
-                            target_allocations[mapped_class] = target_values[i]
+                    # Get target values for the selected profile
+                    if target_profile in st.session_state.strategic_asset_allocation:
+                        target_values = st.session_state.strategic_asset_allocation[target_profile]
+                        st.write(f"Debug: Target values: {target_values}")
+                        
+                        # Map assumption page asset classes to our asset classes
+                        asset_class_mapping = {
+                            'Cash': 'Cash',
+                            'Fixed Interest': 'Australian Fixed Interest',
+                            'International Fixed Interest': 'International Fixed Interest',
+                            'Australian Shares': 'Australian Equities',
+                            'International Shares': 'International Equities',
+                            'Property': 'Property',
+                            'Alternatives': 'Alternatives'
+                        }
+                        
+                        for i, assumption_asset_class in enumerate(asset_class_names):
+                            mapped_class = asset_class_mapping.get(assumption_asset_class, assumption_asset_class)
+                            if mapped_class in target_allocations:
+                                target_allocations[mapped_class] += target_values[i]
+                            else:
+                                target_allocations[mapped_class] = target_values[i]
+                        
+                        st.write(f"Debug: Final target allocations: {target_allocations}")
+                    else:
+                        st.error(f"Profile '{target_profile}' not found in strategic asset allocation data")
+                        target_allocations = {
+                            'Cash': 5,
+                            'Australian Fixed Interest': 25,
+                            'International Fixed Interest': 10,
+                            'Australian Equities': 28,
+                            'International Equities': 20,
+                            'Property': 6,
+                            'Alternatives': 6
+                        }
                 else:
                     # Default target allocations if assumptions not available
+                    st.warning("Strategic asset allocation data not available. Using default values.")
                     target_allocations = {
                         'Cash': 5,
                         'Australian Fixed Interest': 25,
