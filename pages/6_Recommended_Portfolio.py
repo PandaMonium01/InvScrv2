@@ -273,17 +273,13 @@ if portfolio_df is not None:
                 )
                 
                 # Get target allocations from assumptions page
+                target_allocations = {}
                 if 'strategic_asset_allocation' in st.session_state:
-                    target_allocations = {}
                     asset_class_names = st.session_state.strategic_asset_allocation['Asset Class']
-                    
-                    # Debug: Show what profile is selected
-                    st.write(f"Debug: Selected profile: {target_profile}")
                     
                     # Get target values for the selected profile
                     if target_profile in st.session_state.strategic_asset_allocation:
                         target_values = st.session_state.strategic_asset_allocation[target_profile]
-                        st.write(f"Debug: Target values: {target_values}")
                         
                         # Map assumption page asset classes to our asset classes
                         asset_class_mapping = {
@@ -296,16 +292,15 @@ if portfolio_df is not None:
                             'Alternatives': 'Alternatives'
                         }
                         
+                        # Build target allocations dictionary
                         for i, assumption_asset_class in enumerate(asset_class_names):
                             mapped_class = asset_class_mapping.get(assumption_asset_class, assumption_asset_class)
                             if mapped_class in target_allocations:
                                 target_allocations[mapped_class] += target_values[i]
                             else:
                                 target_allocations[mapped_class] = target_values[i]
-                        
-                        st.write(f"Debug: Final target allocations: {target_allocations}")
                     else:
-                        st.error(f"Profile '{target_profile}' not found in strategic asset allocation data")
+                        # Fallback if profile not found
                         target_allocations = {
                             'Cash': 5,
                             'Australian Fixed Interest': 25,
@@ -317,7 +312,6 @@ if portfolio_df is not None:
                         }
                 else:
                     # Default target allocations if assumptions not available
-                    st.warning("Strategic asset allocation data not available. Using default values.")
                     target_allocations = {
                         'Cash': 5,
                         'Australian Fixed Interest': 25,
@@ -331,41 +325,25 @@ if portfolio_df is not None:
                 # Display current profile being compared
                 st.info(f"Comparing against **{target_profile}** target allocation")
                 
-                # Create container to ensure table refreshes
-                with st.container():
-                    # Display allocation comparison
-                    comparison_cols = st.columns([2, 1, 1, 1])
-                    with comparison_cols[0]:
-                        st.write("**Asset Class**")
-                    with comparison_cols[1]:
-                        st.write("**Portfolio %**")
-                    with comparison_cols[2]:
-                        st.write("**Target %**")
-                    with comparison_cols[3]:
-                        st.write("**Variance**")
+                # Create DataFrame for proper table display that will refresh
+                allocation_comparison_data = []
+                for asset_class in asset_classes:
+                    portfolio_pct = asset_class_allocations.get(asset_class, 0.0)
+                    target_pct = target_allocations.get(asset_class, 0.0)
+                    variance = portfolio_pct - target_pct
                     
-                    st.markdown("---")
+                    variance_str = f"+{variance:.1f}%" if variance > 0 else f"{variance:.1f}%" if variance < 0 else "0.0%"
                     
-                    # Display each asset class row
-                    for asset_class in asset_classes:
-                        portfolio_pct = asset_class_allocations.get(asset_class, 0.0)
-                        target_pct = target_allocations.get(asset_class, 0.0)
-                        variance = portfolio_pct - target_pct
-                        
-                        comp_row_cols = st.columns([2, 1, 1, 1])
-                        with comp_row_cols[0]:
-                            st.write(asset_class)
-                        with comp_row_cols[1]:
-                            st.write(f"{portfolio_pct:.1f}%")
-                        with comp_row_cols[2]:
-                            st.write(f"{target_pct:.1f}%")
-                        with comp_row_cols[3]:
-                            if variance > 0:
-                                st.write(f"+{variance:.1f}%")
-                            elif variance < 0:
-                                st.write(f"{variance:.1f}%")
-                            else:
-                                st.write("0.0%")
+                    allocation_comparison_data.append({
+                        'Asset Class': asset_class,
+                        'Portfolio %': f"{portfolio_pct:.1f}%",
+                        'Target %': f"{target_pct:.1f}%",
+                        'Variance': variance_str
+                    })
+                
+                # Display as a dataframe which will refresh properly
+                comparison_df = pd.DataFrame(allocation_comparison_data)
+                st.dataframe(comparison_df, use_container_width=True, hide_index=True)
                 
                 # Summary metrics
                 st.markdown("---")
