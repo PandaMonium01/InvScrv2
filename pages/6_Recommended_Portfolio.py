@@ -17,6 +17,10 @@ if 'recommended_portfolio' not in st.session_state:
 if 'portfolio_allocations' not in st.session_state:
     st.session_state.portfolio_allocations = {}
 
+# Initialize combined_data if needed
+if 'combined_data' not in st.session_state:
+    st.session_state.combined_data = None
+
 st.title("Recommended Portfolio")
 
 # Function to convert the portfolio dictionary to a DataFrame
@@ -196,6 +200,7 @@ if portfolio_df is not None:
             weighted_beta = 0.0
             weighted_sharpe = 0.0
             weighted_mer = 0.0
+            weighted_return = 0.0
             total_weight = 0.0
             
             for apir in portfolio_apirs:
@@ -213,6 +218,7 @@ if portfolio_df is not None:
                             beta = fund_row.get('3 Year Beta', 0)
                             sharpe = fund_row.get('3 Year Sharpe Ratio', 0)
                             mer = fund_row.get('Investment Management Fee(%)', 0)
+                            return_3yr = fund_row.get('3 Years Annualised (%)', 0)
                             
                             # Only include in calculation if values are not NaN
                             if pd.notna(stddev):
@@ -223,6 +229,8 @@ if portfolio_df is not None:
                                 weighted_sharpe += weight * float(sharpe)
                             if pd.notna(mer):
                                 weighted_mer += weight * float(mer)
+                            if pd.notna(return_3yr):
+                                weighted_return += weight * float(return_3yr)
                             
                             total_weight += weight
                     except (ValueError, TypeError):
@@ -230,18 +238,21 @@ if portfolio_df is not None:
             
             # Display portfolio metrics
             if total_weight > 0:
-                col1, col2, col3, col4 = st.columns(4)
+                col1, col2, col3, col4, col5 = st.columns(5)
                 
                 with col1:
-                    st.metric("Portfolio StdDev", f"{weighted_stddev:.2f}")
+                    st.metric("Portfolio 3Yr Return", f"{weighted_return:.2f}%")
                 
                 with col2:
-                    st.metric("Portfolio Beta", f"{weighted_beta:.2f}")
+                    st.metric("Portfolio StdDev", f"{weighted_stddev:.2f}")
                 
                 with col3:
-                    st.metric("Portfolio Sharpe Ratio", f"{weighted_sharpe:.2f}")
+                    st.metric("Portfolio Beta", f"{weighted_beta:.2f}")
                 
                 with col4:
+                    st.metric("Portfolio Sharpe Ratio", f"{weighted_sharpe:.2f}")
+                
+                with col5:
                     st.metric("Portfolio MER", f"{weighted_mer:.2f}%")
                 
                 # Show allocation coverage
