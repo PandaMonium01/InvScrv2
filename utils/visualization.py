@@ -366,3 +366,248 @@ def create_risk_return_scatter(df):
             height=600,
             margin=dict(l=50, r=50, t=80, b=50)
         )
+
+def create_fee_distribution_chart(df):
+    """
+    Create a histogram showing the distribution of investment management fees.
+    
+    Parameters:
+    df (DataFrame): DataFrame containing investment data
+    
+    Returns:
+    Figure: Plotly figure object
+    """
+    if df is None or df.empty or 'Investment Management Fee(%)' not in df.columns:
+        return go.Figure().update_layout(
+            title="No fee data available",
+            height=400,
+            margin=dict(l=50, r=50, t=80, b=50)
+        )
+    
+    try:
+        # Clean and convert fee data
+        fees = pd.to_numeric(df['Investment Management Fee(%)'], errors='coerce')
+        fees = fees.dropna()
+        
+        if fees.empty:
+            return go.Figure().update_layout(
+                title="No valid fee data available",
+                height=400,
+                margin=dict(l=50, r=50, t=80, b=50)
+            )
+        
+        # Create histogram
+        fig = px.histogram(
+            x=fees,
+            nbins=20,
+            title='Distribution of Investment Management Fees',
+            labels={'x': 'Investment Management Fee (%)', 'y': 'Count'}
+        )
+        
+        # Add mean line
+        mean_fee = fees.mean()
+        fig.add_vline(x=mean_fee, line_dash="dash", line_color="red", 
+                     annotation_text=f"Mean: {mean_fee:.2f}%")
+        
+        fig.update_layout(
+            height=400,
+            margin=dict(l=50, r=50, t=80, b=50)
+        )
+        
+        return fig
+        
+    except Exception as e:
+        print(f"Error creating fee distribution chart: {str(e)}")
+        return go.Figure().update_layout(
+            title="Error creating fee distribution chart",
+            height=400,
+            margin=dict(l=50, r=50, t=80, b=50)
+        )
+
+def create_performance_risk_chart(df):
+    """
+    Create a scatter plot showing performance vs risk.
+    
+    Parameters:
+    df (DataFrame): DataFrame containing investment data
+    
+    Returns:
+    Figure: Plotly figure object
+    """
+    if df is None or df.empty:
+        return go.Figure().update_layout(
+            title="No data available",
+            height=400,
+            margin=dict(l=50, r=50, t=80, b=50)
+        )
+    
+    try:
+        required_cols = ['3 Years Annualised (%)', '3 Year Standard Deviation']
+        if not all(col in df.columns for col in required_cols):
+            return go.Figure().update_layout(
+                title="Missing required columns for performance vs risk chart",
+                height=400,
+                margin=dict(l=50, r=50, t=80, b=50)
+            )
+        
+        # Clean data
+        df_clean = df.copy()
+        for col in required_cols:
+            df_clean[col] = pd.to_numeric(df_clean[col], errors='coerce')
+        
+        df_clean = df_clean.dropna(subset=required_cols)
+        
+        if df_clean.empty:
+            return go.Figure().update_layout(
+                title="No valid data for performance vs risk chart",
+                height=400,
+                margin=dict(l=50, r=50, t=80, b=50)
+            )
+        
+        # Create scatter plot
+        fig = px.scatter(
+            df_clean,
+            x='3 Year Standard Deviation',
+            y='3 Years Annualised (%)',
+            color='Morningstar Category' if 'Morningstar Category' in df_clean.columns else None,
+            hover_name='Name' if 'Name' in df_clean.columns else None,
+            title='Performance vs Risk',
+            labels={'x': 'Standard Deviation (Risk)', 'y': 'Annualized Return (%)'}
+        )
+        
+        fig.update_layout(
+            height=400,
+            margin=dict(l=50, r=50, t=80, b=50)
+        )
+        
+        return fig
+        
+    except Exception as e:
+        print(f"Error creating performance vs risk chart: {str(e)}")
+        return go.Figure().update_layout(
+            title="Error creating performance vs risk chart",
+            height=400,
+            margin=dict(l=50, r=50, t=80, b=50)
+        )
+
+def create_category_comparison_chart(df, numeric_columns):
+    """
+    Create a chart comparing averages across categories.
+    
+    Parameters:
+    df (DataFrame): DataFrame containing investment data
+    numeric_columns (list): List of numeric columns to compare
+    
+    Returns:
+    Figure: Plotly figure object
+    """
+    if df is None or df.empty or 'Morningstar Category' not in df.columns:
+        return go.Figure().update_layout(
+            title="No category data available",
+            height=400,
+            margin=dict(l=50, r=50, t=80, b=50)
+        )
+    
+    try:
+        # Calculate averages by category
+        category_avg = df.groupby('Morningstar Category')[numeric_columns].mean()
+        
+        if category_avg.empty:
+            return go.Figure().update_layout(
+                title="No data available for category comparison",
+                height=400,
+                margin=dict(l=50, r=50, t=80, b=50)
+            )
+        
+        # Create bar chart for the first metric
+        main_metric = numeric_columns[0]
+        fig = px.bar(
+            x=category_avg.index,
+            y=category_avg[main_metric],
+            title=f'Average {main_metric} by Category',
+            labels={'x': 'Category', 'y': main_metric}
+        )
+        
+        fig.update_layout(
+            height=400,
+            margin=dict(l=50, r=50, t=80, b=50),
+            xaxis_tickangle=-45
+        )
+        
+        return fig
+        
+    except Exception as e:
+        print(f"Error creating category comparison chart: {str(e)}")
+        return go.Figure().update_layout(
+            title="Error creating category comparison chart",
+            height=400,
+            margin=dict(l=50, r=50, t=80, b=50)
+        )
+
+def create_portfolio_comparison_chart(all_funds, selected_funds, numeric_columns):
+    """
+    Create a chart comparing selected portfolio vs all funds.
+    
+    Parameters:
+    all_funds (DataFrame): DataFrame containing all funds data
+    selected_funds (DataFrame): DataFrame containing selected funds data
+    numeric_columns (list): List of numeric columns to compare
+    
+    Returns:
+    Figure: Plotly figure object
+    """
+    if all_funds is None or all_funds.empty or selected_funds is None or selected_funds.empty:
+        return go.Figure().update_layout(
+            title="No data available for portfolio comparison",
+            height=400,
+            margin=dict(l=50, r=50, t=80, b=50)
+        )
+    
+    try:
+        # Calculate averages
+        all_avg = all_funds[numeric_columns].mean()
+        selected_avg = selected_funds[numeric_columns].mean()
+        
+        # Create comparison data
+        comparison_data = pd.DataFrame({
+            'Metric': numeric_columns,
+            'All Funds': all_avg.values,
+            'Selected Portfolio': selected_avg.values
+        })
+        
+        # Create grouped bar chart
+        fig = go.Figure()
+        
+        fig.add_trace(go.Bar(
+            name='All Funds',
+            x=comparison_data['Metric'],
+            y=comparison_data['All Funds'],
+            marker_color='lightblue'
+        ))
+        
+        fig.add_trace(go.Bar(
+            name='Selected Portfolio',
+            x=comparison_data['Metric'],
+            y=comparison_data['Selected Portfolio'],
+            marker_color='darkblue'
+        ))
+        
+        fig.update_layout(
+            title='Portfolio Comparison: Selected vs All Funds',
+            xaxis_title='Metrics',
+            yaxis_title='Average Value',
+            barmode='group',
+            height=400,
+            margin=dict(l=50, r=50, t=80, b=50),
+            xaxis_tickangle=-45
+        )
+        
+        return fig
+        
+    except Exception as e:
+        print(f"Error creating portfolio comparison chart: {str(e)}")
+        return go.Figure().update_layout(
+            title="Error creating portfolio comparison chart",
+            height=400,
+            margin=dict(l=50, r=50, t=80, b=50)
+        )
