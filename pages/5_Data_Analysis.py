@@ -210,17 +210,17 @@ with tabs[0]:
                 if pd.isna(stdev_diff) or pd.isna(sharpe_diff) or pd.isna(beta_diff):
                     return None
                 
-                # Apply the formula: ((Fund StdDev - Category Avg StdDev) / 10) - (Fund Sharpe - Category Avg Sharpe) + (Category Avg Beta - Fund Beta)
-                # Note: The +- in the original formula means subtract the Sharpe difference
-                composite_score = (stdev_diff / 10) - sharpe_diff + beta_diff
+                # Apply the formula: ((Fund StdDev - Category Avg StdDev) / 10) + (-(Fund Sharpe - Category Avg Sharpe)) + (Category Avg Beta - Fund Beta)
+                # Note: We add the negative of the Sharpe difference
+                composite_score = (stdev_diff / 10) + (-(sharpe_diff)) + beta_diff
                 
-                # Debug for FSF1240AU
-                if row.get('APIR Code') == 'FSF1240AU':
-                    print(f"DEBUG - FSF1240AU Composite Score (CORRECTED):")
+                # Debug for FSF1240AU and ETL0402AU
+                if row.get('APIR Code') in ['FSF1240AU', 'ETL0402AU']:
+                    print(f"DEBUG - {row.get('APIR Code')} Composite Score:")
                     print(f"  Fund StdDev - Category Avg StdDev: {stdev_diff}")
                     print(f"  Fund Sharpe - Category Avg Sharpe: {sharpe_diff}")
                     print(f"  Category Avg Beta - Fund Beta: {beta_diff}")
-                    print(f"  Calculation: ({stdev_diff} / 10) - {sharpe_diff} + {beta_diff} = {composite_score}")
+                    print(f"  Calculation: ({stdev_diff} / 10) + (-{sharpe_diff}) + {beta_diff} = {composite_score}")
                 
                 return composite_score
             
